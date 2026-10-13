@@ -1,0 +1,7 @@
+{
+  "first_egress_failure_epoch": 1791289586.0,
+  "first_quarantine_action": "2026-10-06 12:25:56.048406",
+  "egress_was_reachable_before": true,
+  "containment_latency_s": 30.914,
+  "egress_failure_latency_s": 29.952
+}

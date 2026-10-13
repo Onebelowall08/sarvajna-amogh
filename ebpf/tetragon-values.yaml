@@ -1,0 +1,40 @@
+tetragon:
+  resources:
+    limits:
+      memory: 6Gi
+    requests:
+      memory: 2Gi
+  extraArgs:
+    enable-process-environment-variables: "true"
+    filter-environment-variables: "TRACE_ID"
+    # Zero retries, which the enrichment sweep establishes as the correct
+    # setting. Export delay tracks the configured ceiling with a coefficient of
+    # 0.965, so the budget is consumed essentially in full, while recall is
+    # 1.000 at every ceiling from 0 to 30 seconds. The retries buy no
+    # attribution and cost latency in proportion to their size.
+    #
+    # They exist to mask an unreachable container runtime socket. When the
+    # socket is reachable they are never consumed; when it is not they execute
+    # in full and fail anyway, which converts a configuration error into a
+    # latency penalty rather than into an error. The preflight verifier checks
+    # socket reachability instead.
+    #
+    # The harness overrides this per cell during the sweep and restores it
+    # afterwards, so this value governs only an installation made directly
+    # from the repository.
+    event-cache-retries: "0"
+    event-cache-retry-delay: "1"
+  exportAllowList: |
+    {"event_set": ["PROCESS_EXEC", "PROCESS_KPROBE"]}
+  exportDenyList: |
+    {"health_check": true}
+    {"namespace": ["kube-system", "sarvajna-infra"]}
+
+  # Direct CRI containerd socket access in k3d
+  cri:
+    enabled: true
+    socketHostPath: "/run/k3s/containerd/containerd.sock"
+
+  # Cgroup ID map for instantaneous pod association
+  cgidmap:
+    enabled: true

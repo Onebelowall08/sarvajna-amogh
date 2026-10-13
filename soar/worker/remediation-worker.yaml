@@ -1,0 +1,417 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: soar-remediator
+  namespace: sarvajna-infra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: soar-remediator
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: soar-remediator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: soar-remediator
+subjects:
+  - kind: ServiceAccount
+    name: soar-remediator
+    namespace: sarvajna-infra
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soar-worker
+  namespace: sarvajna-infra
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: soar-worker
+  template:
+    metadata:
+      labels:
+        app: soar-worker
+    spec:
+      serviceAccountName: soar-remediator
+      containers:
+        - name: remediator
+          image: sarvajna-python-base:v2
+          imagePullPolicy: IfNotPresent
+          env:
+            # Stamped onto every detection row so the configuration a number was
+            # produced under is recoverable from the data alone. Earlier suites
+            # recorded the enrichment setting only in the cell name of the
+            # enrichment sweep, so for every other cell it could not be
+            # established after the fact.
+            - name: BENCHMARK_RUN_ID
+              value: "unset"
+            - name: ENRICH_RETRIES
+              value: "0"
+            - name: ENRICH_DELAY_S
+              value: "1"
+            - name: ENFORCE_REVOCATION
+              value: "false"
+            - name: CONCURRENCY_LEVEL
+              value: "10"
+            # Pod quarantine severs the pod from the network, which ends traffic
+            # for every tenant on it. A cell measuring attribution over
+            # thousands of requests cannot also quarantine the pod serving them,
+            # so this is off everywhere except the dedicated enforcement cell.
+            - name: TIER2_ENABLED
+              value: "false"
+            # Response is attribution-driven by design. An alert with no
+            # attributed principal produces no action, which is what makes label
+            # stripping fail safe and label forgery fail dangerously. Acting on
+            # uncorrelated alerts would be coarse response, which is the
+            # behaviour the bridge exists to improve on.
+            - name: ACT_ON_UNCORRELATED
+              value: "false"
+            - name: PG_HOST
+              value: "postgres.sarvajna-infra.svc.cluster.local"
+            - name: PG_PORT
+              value: "5432"
+            - name: PG_USER
+              value: "sarvajna"
+            - name: PG_PASSWORD
+              value: "amogh_secure_pwd"
+            - name: PG_DB
+              value: "sarvajna_db"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mkdir -p /app
+              cat << 'EOF' > /app/worker.py
+              import asyncio
+              import json
+              import os
+              import time
+              from datetime import datetime, timezone
+
+              import nats
+              import pg8000.native
+              from clickhouse_driver import Client as CHClient
+              from kubernetes import client, config
+
+              config.load_incluster_config()
+              k8s_core = client.CoreV1Api()
+              ch = CHClient(
+                  host="clickhouse.sarvajna-infra.svc.cluster.local",
+                  port=9000, user="default", password="amogh_secure_pwd")
+
+              RUN_ID = os.getenv("BENCHMARK_RUN_ID", "unset")
+              ENRICH_RETRIES = int(os.getenv("ENRICH_RETRIES", "0"))
+              ENRICH_DELAY_S = int(os.getenv("ENRICH_DELAY_S", "1"))
+              ENFORCE_REVOCATION = os.getenv("ENFORCE_REVOCATION", "false").lower() == "true"
+              TIER2_ENABLED = os.getenv("TIER2_ENABLED", "false").lower() == "true"
+              ACT_ON_UNCORRELATED = os.getenv("ACT_ON_UNCORRELATED", "false").lower() == "true"
+              CONCURRENCY = int(os.getenv("CONCURRENCY_LEVEL", "10"))
+
+              QUARANTINE_COOLDOWN_S = 1.0
+              CLOCK_SANITY_S = 300.0
+
+              FLUSH_ROWS = 200
+              FLUSH_SECS = 0.5
+
+              DETECTION_COLUMNS = (
+                  "run_id, config, concurrency, window_ms, enrich_retries, "
+                  "enrich_delay_s, enforce_revocation, attack_id, trace_id, "
+                  "alert_type, correlated, join_mode, matched_on, user_id, "
+                  "tenant_id, pod_name, tier, action_type, action_ok, action_err, "
+                  "t_app_emit, t_kernel, t_kernel_true, t_collector, t_correlate, "
+                  "t_soar_in, t_action, t_enforced, mttr_ms, mttr_e2e_ms, mttr_app_ms, mttr_pipeline_ms"
+              )
+              REVOCATION_COLUMNS = (
+                  "run_id, attack_id, trace_id, alert_type, principal_user, "
+                  "principal_tenant, enforced, action_ok, action_err, t_action"
+              )
+
+              PENDING_DET = []
+              PENDING_REV = []
+              LAST_FLUSH = time.time()
+
+              # Principals already revoked in this cell. Avoids reissuing an
+              # action that is already in force: the measurement of interest is
+              # how many distinct principals were acted against, and repeated
+              # alerts for one principal are one revocation, not many.
+              revoked_principals = set()
+              active_quarantines = {}
+              pg_conn = None
+              pg_failures = 0
+
+
+              def now_ts() -> float:
+                  return datetime.now(timezone.utc).timestamp()
+
+
+              def ts(v):
+                  return datetime.fromtimestamp(v, timezone.utc) if v and v > 0 else None
+
+
+              def pg():
+                  """Lazy connection, reconnecting on failure. A revocation that
+                  cannot be written is recorded with its error rather than
+                  dropped, so an enforcement gap is visible in the data."""
+                  global pg_conn
+                  if pg_conn is None:
+                      pg_conn = pg8000.native.Connection(
+                          user=os.getenv("PG_USER", "sarvajna"),
+                          password=os.getenv("PG_PASSWORD", "amogh_secure_pwd"),
+                          host=os.getenv("PG_HOST", "postgres.sarvajna-infra.svc.cluster.local"),
+                          port=int(os.getenv("PG_PORT", "5432")),
+                          database=os.getenv("PG_DB", "sarvajna_db"),
+                          timeout=5,
+                      )
+                  return pg_conn
+
+
+              def revoke_principal(user_id, tenant_id, alert_type):
+                  """Write the revocation to the store the application reads.
+
+                  Skipped unless this cell enforces. The application polls that
+                  store continuously and always honours it, so enforcement is
+                  controlled here rather than by reconfiguring the application:
+                  changing an application environment variable replaces the pod,
+                  and the pod's filesystem holds the objects the workload reads.
+                  A cell that began by discarding them would record almost
+                  nothing and still look like it ran.
+
+                  The ClickHouse record is written either way, so the subject of
+                  every action is known in every cell, enforced or not."""
+                  global pg_conn, pg_failures
+                  if not ENFORCE_REVOCATION:
+                      return 1, None
+                  try:
+                      pg().run(
+                          "INSERT INTO revocations "
+                          "(principal_user, principal_tenant, run_id, alert_type) "
+                          "VALUES (:u, :t, :r, :a) "
+                          "ON CONFLICT (principal_user) DO NOTHING",
+                          u=user_id, t=tenant_id or "", r=RUN_ID, a=alert_type,
+                      )
+                      return 1, None
+                  except Exception as ex:
+                      pg_conn = None
+                      pg_failures += 1
+                      return 0, f"pg: {ex}"
+
+
+              def quarantine_pod(pod_name):
+                  try:
+                      k8s_core.patch_namespaced_pod(
+                          name=pod_name, namespace="default",
+                          body={"metadata": {"labels": {"quarantine": "true"}}})
+                      return 1, None
+                  except Exception as ex:
+                      return 0, str(ex)
+
+
+              def flush(det_rows, rev_rows):
+                  if det_rows:
+                      try:
+                          ch.execute(
+                              f"INSERT INTO sarvajna.detections ({DETECTION_COLUMNS}) VALUES",
+                              det_rows)
+                      except Exception as ex:
+                          print(f"[CH INSERT ERROR detections] {ex}", flush=True)
+                  if rev_rows:
+                      try:
+                          ch.execute(
+                              f"INSERT INTO sarvajna.revocations ({REVOCATION_COLUMNS}) VALUES",
+                              rev_rows)
+                      except Exception as ex:
+                          print(f"[CH INSERT ERROR revocations] {ex}", flush=True)
+
+
+              async def maybe_flush(loop, force=False):
+                  global PENDING_DET, PENDING_REV, LAST_FLUSH
+                  due = (force or len(PENDING_DET) >= FLUSH_ROWS
+                         or (time.time() - LAST_FLUSH) > FLUSH_SECS)
+                  if not due:
+                      return
+                  if not PENDING_DET and not PENDING_REV:
+                      return
+                  det, PENDING_DET = PENDING_DET, []
+                  rev, PENDING_REV = PENDING_REV, []
+                  LAST_FLUSH = time.time()
+                  await loop.run_in_executor(None, flush, det, rev)
+
+
+              async def main():
+                  nc = await nats.connect(
+                      "nats://nats.sarvajna-infra.svc.cluster.local:4222")
+                  js = nc.jetstream()
+                  try:
+                      await js.add_stream(name="ALERTS", subjects=["alerts.critical"])
+                  except Exception:
+                      pass
+
+                  sub = await js.pull_subscribe(
+                      "alerts.critical", durable="soar-worker-durable")
+                  print(f"[SOAR] run={RUN_ID} tier2={TIER2_ENABLED} "
+                        f"enforce_revocation={ENFORCE_REVOCATION} "
+                        f"act_on_uncorrelated={ACT_ON_UNCORRELATED} "
+                        f"enrich={ENRICH_RETRIES}x{ENRICH_DELAY_S}s", flush=True)
+                  loop = asyncio.get_running_loop()
+
+                  while True:
+                      try:
+                          msgs = await sub.fetch(batch=256, timeout=1)
+                      except Exception as err:
+                          if "not found" in str(err).lower():
+                              try:
+                                  sub = await js.pull_subscribe(
+                                      "alerts.critical", durable="soar-worker-durable")
+                              except Exception:
+                                  pass
+                          await maybe_flush(loop)
+                          await asyncio.sleep(0.05)
+                          continue
+
+                      for msg in msgs:
+                          t_soar_in = now_ts()
+                          a = json.loads(msg.data.decode())
+
+                          pod_name = a.get("pod_name")
+                          tier = int(a.get("tier", 1))
+                          correlated = 1 if a.get("correlated") else 0
+                          user_id = a.get("user_id")
+                          tenant_id = a.get("tenant_id")
+                          alert_type = a.get("alert_type", "UNKNOWN")
+                          k_ts = float(a.get("t_kernel", t_soar_in))
+
+                          actions = []
+                          action_ok = 1
+                          action_err = None
+                          t_enforced = None
+
+                          actionable = correlated == 1 or ACT_ON_UNCORRELATED
+
+                          # Tier 1, user-scoped. The subject comes from the
+                          # correlation, so under forgery it is the principal
+                          # whose identifier was copied. That is the measurement.
+                          if actionable and user_id:
+                              if user_id not in revoked_principals:
+                                  revoked_principals.add(user_id)
+                                  ok, err = revoke_principal(
+                                      user_id, tenant_id, alert_type)
+                                  actions.append("revoke_session")
+                                  if not ok:
+                                      action_ok = 0
+                                      action_err = err
+                                  PENDING_REV.append((
+                                      RUN_ID, a.get("attack_id"), a.get("trace_id"),
+                                      alert_type, user_id, tenant_id or "",
+                                      1 if ENFORCE_REVOCATION else 0, ok, err,
+                                      datetime.fromtimestamp(now_ts(), timezone.utc),
+                                  ))
+                              else:
+                                  actions.append("revoke_session_already_in_force")
+
+                          # Tier 2, pod-scoped. Disabled in measurement cells.
+                          if actionable and tier == 2 and pod_name and TIER2_ENABLED:
+                              last = active_quarantines.get(pod_name, 0.0)
+                              if t_soar_in - last > QUARANTINE_COOLDOWN_S:
+                                  active_quarantines[pod_name] = t_soar_in
+                                  ok, err = quarantine_pod(pod_name)
+                                  actions.append("pod_quarantine")
+                                  if ok:
+                                      t_enforced = now_ts()
+                                  else:
+                                      action_ok = 0
+                                      action_err = (action_err or "") + (err or "")
+
+                          if not actions:
+                              actions.append(
+                                  "none_uncorrelated" if correlated == 0 else "none")
+
+                          t_action = now_ts()
+
+                          k_true = float(a.get("t_kernel_true", 0.0) or 0.0)
+                          k_collector = float(a.get("t_collector", 0.0) or 0.0)
+                          app_emit = float(a.get("t_app_emit", 0.0) or 0.0)
+
+                          # Tetragon derives event time from a cached boot
+                          # wall-clock plus monotonic time. After a host suspend
+                          # that baseline is stale. Where the offset matches the
+                          # measured suspend drift the timestamp is corrected;
+                          # otherwise it is discarded rather than trusted.
+                          drift = (time.clock_gettime(time.CLOCK_BOOTTIME)
+                                   - time.clock_gettime(time.CLOCK_MONOTONIC))
+                          if k_true > 0 and abs(t_soar_in - k_true) > CLOCK_SANITY_S:
+                              cal = k_true - drift
+                              k_true = cal if abs(t_soar_in - cal) < CLOCK_SANITY_S else 0.0
+
+                          mttr_ms = (t_action - k_ts) * 1000.0
+                          effective_t0 = k_true if k_true > 0 else k_collector
+                          mttr_e2e_ms = ((t_action - effective_t0) * 1000.0
+                                         if effective_t0 > 0 else None)
+                          # Latency from the application's own record of the
+                          # request, which is the only figure comparable to a
+                          # user-visible response time.
+                          mttr_app_ms = ((t_action - app_emit) * 1000.0
+                                         if app_emit > 0 else None)
+                          # Latency of the correlation and response pipeline:
+                          # collector receipt to action taken. Excludes process
+                          # spawn (the application's cost) and kernel-event
+                          # export (Tetragon's), both of which sit upstream and
+                          # vary by hundreds of milliseconds between runs.
+                          mttr_pipeline_ms = ((t_action - k_collector) * 1000.0
+                                              if k_collector > 0 else None)
+                          PENDING_DET.append((
+                              RUN_ID,
+                              RUN_ID,
+                              CONCURRENCY,
+                              int(a.get("window_ms", 10000)),
+                              ENRICH_RETRIES,
+                              ENRICH_DELAY_S,
+                              1 if ENFORCE_REVOCATION else 0,
+                              a.get("attack_id"),
+                              a.get("trace_id"),
+                              alert_type,
+                              correlated,
+                              a.get("join_mode", "unknown"),
+                              a.get("matched_on", "none"),
+                              user_id,
+                              tenant_id,
+                              pod_name,
+                              tier,
+                              "+".join(actions),
+                              action_ok,
+                              action_err,
+                              ts(app_emit),
+                              datetime.fromtimestamp(k_ts, timezone.utc),
+                              ts(k_true),
+                              ts(k_collector),
+                              datetime.fromtimestamp(
+                                  float(a.get("t_correlate", t_soar_in)), timezone.utc),
+                              datetime.fromtimestamp(t_soar_in, timezone.utc),
+                              datetime.fromtimestamp(t_action, timezone.utc),
+                              ts(t_enforced),
+                              mttr_ms,
+                              mttr_e2e_ms,
+                              mttr_app_ms,
+                              mttr_pipeline_ms,
+                          ))
+                          await msg.ack()
+
+                      await maybe_flush(loop)
+
+              if __name__ == "__main__":
+                  asyncio.run(main())
+              EOF
+              python -u /app/worker.py
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 500m

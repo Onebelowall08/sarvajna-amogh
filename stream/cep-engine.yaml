@@ -1,0 +1,672 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cep-engine-config
+  namespace: sarvajna-infra
+data:
+  engine.py: |
+    import asyncio
+    import json
+    import os
+    import re
+    import time
+    from collections import deque, defaultdict
+    from dataclasses import dataclass
+    from datetime import datetime, timezone
+    import nats
+
+    WINDOW_MS = int(os.getenv("CORRELATION_WINDOW_MS", "5000"))
+    JOIN_MODE = os.getenv("JOIN_MODE", "deterministic")
+    RUN_ID    = os.getenv("BENCHMARK_RUN_ID", "unset")
+
+    # Lifetime of a process execution waiting for the application record that
+    # explains it. Defaults to the correlation window, which is the coupling
+    # the window sweep measures: an execution reaching the correlator before
+    # its application record is discarded as unverified_label when the window
+    # closes, even though both records are intact and the label is valid.
+    # Setting this independently of the window isolates that mechanism, and one
+    # cell does exactly that.
+    #
+    # Read with an explicit empty-string guard: an environment variable that is
+    # set but empty does not fall back to the default, and int("") raises.
+    PENDING_HORIZON_MS = int(
+        os.getenv("PENDING_EXECVE_HORIZON_MS", "").strip() or WINDOW_MS)
+
+    # Lifetime of the request-identifier index. Independent of the correlation
+    # window because an identifier is an exact key, not a proximity bound.
+    TRACE_HORIZON_S = float(os.getenv("TRACE_HORIZON_S", "").strip() or "60")
+
+    # Silence after which the correlator advances its own clock.
+    IDLE_GRACE_S = float(os.getenv("IDLE_GRACE_S", "").strip() or "2.0")
+
+    # Destination addresses excluded from outbound correlation.
+    #
+    # The application maintains a pooled connection to the revocation store,
+    # and those connections originate inside the pod the tracing policy
+    # watches. They carry no application record to pair with, so under the
+    # bridge they surface as unexplained alerts and under temporal proximity
+    # they can pair with any nearby benign request. Excluding them removes an
+    # artefact of the measurement apparatus rather than a property of the
+    # workload.
+    #
+    # Pod addresses, not service addresses: the CNI rewrites the destination at
+    # connect() before the kernel probe fires, so the address observed is the
+    # backing pod. Both are accepted so the exclusion still holds on a cluster
+    # where that rewrite happens later in the path.
+    IGNORE_DADDRS = {
+        s.strip() for s in os.getenv("IGNORE_DADDRS", "").split(",") if s.strip()
+    }
+
+    def parse_ts(s):
+        if not s:
+            return 0.0
+        try:
+            s_str = str(s).replace("Z", "+00:00")
+            # Tetragon emits nanosecond precision; fromisoformat accepts at
+            # most microseconds.
+            if "." in s_str:
+                parts = s_str.split(".", 1)
+                m = re.search(r"(\d+)(.*)", parts[1])
+                if m:
+                    s_str = f"{parts[0]}.{m.group(1)[:6]}{m.group(2)}"
+            return datetime.fromisoformat(s_str).timestamp()
+        except Exception:
+            return 0.0
+
+    # Application record kinds, and what each may pair with.
+    #
+    # A denial is a correlation candidate under every mode. A permitted access
+    # is a candidate under temporal proximity only, because proximity cannot
+    # read a verdict. That asymmetry is what the ablation measures: benign and
+    # attack traffic produce the same kernel events on the same objects, so a
+    # configuration reporting no false positive has discriminated on the
+    # verdict rather than on the absence of benign traffic.
+    DENIAL_KINDS = {"app_authz_denial", "app_ssrf_denial"}
+    # Named but never consulted: the indexing branch tests DENIAL_KINDS and the
+    # complement follows. Declared so the taxonomy is complete in one place,
+    # because the asymmetry it records is load-bearing. A permitted access is
+    # never indexed as a resource-identity candidate, so under the spatial and
+    # deterministic modes a benign request has no counterpart to pair with and
+    # cannot be attributed whatever the kernel evidence looks like. Zero false
+    # positives under those modes is therefore a property of the index rather
+    # than a discrimination performed at match time, and the evaluation says so.
+    PERMITTED_KINDS = {"app_file_access", "app_fetch_allowed"}
+    FILE_KINDS = {"app_authz_denial", "app_file_access"}
+    NET_KINDS = {"app_ssrf_denial", "app_fetch_allowed"}
+    # Carries no kernel consequence: the request was refused before it reached
+    # a syscall. Indexed by identifier so forgery against it remains visible,
+    # never offered as a proximity candidate.
+    INERT_KINDS = {"app_revoked_request"}
+
+    @dataclass
+    class Ev:
+        side: str
+        pod: str
+        kind: str
+        ts: float
+        true_ts: float = 0.0
+        collector_ts: float = 0.0
+        user_id: str = ""
+        tenant_id: str = ""
+        trace_id: str = ""
+        attack_id: str = ""
+        endpoint: str = ""
+        file_name: str = ""
+        label: str = ""
+        path: str = ""
+        alive: bool = True
+        # Reason this event will be reported with if it is still unmatched when
+        # its buffer horizon passes.
+        pending_reason: str = ""
+
+    class Index:
+        """Correlation state over a bounded window.
+
+        EVERY KERNEL EVENT PRODUCES EXACTLY ONE OUTCOME. An event that finds no
+        partner on arrival is held rather than reported, because the two sides
+        travel different collection paths and routinely arrive out of order: in
+        measurement, the kernel events for an object access reach the
+        correlator before the application's own record of that access.
+
+        An earlier version reported such an event immediately and also left it
+        available for matching, so an event could be counted once as unmatched
+        and again as half of a correlated pair. Metrics were unaffected, since
+        an unmatched alert carries no attack identifier and never enters the
+        ground-truth join, but the reason codes did not partition the events
+        and so could not be reconciled against them.
+
+        Terminal conditions are reported on arrival, because no later arrival
+        can change them: an execution carrying no label, a connection with no
+        destination, or a mode that structurally cannot bind the event type.
+        """
+
+        def __init__(self):
+            self.order = deque()
+            self.by_trace = {}
+            # Kernel side of the identifier join, and empty in every
+            # configuration this study collects. Under deterministic mode a
+            # matched execution is never indexed and an unmatched one is held
+            # in pending_execve instead, so nothing is ever written here;
+            # under temporal or spatial mode match_app's lookup against it is
+            # unreachable, because that branch is guarded on deterministic.
+            # Retained so the taxonomy is complete in one place and so expire()
+            # has a symmetric clean-up path, not because any cell reads it.
+            self.by_label = {}
+            self.by_endpoint = defaultdict(deque)
+            self.by_file = defaultdict(deque)
+            self.app_temporal = deque()
+            self.kernel_temporal = deque()
+            # Executions holding a label, waiting for the application record
+            # that identifier refers to.
+            self.pending_execve = deque()
+            # File and network events waiting for an application record to
+            # explain them.
+            self.pending_kernel = deque()
+
+        def add(self, e: Ev, as_candidate: bool = True):
+            """as_candidate=False indexes by identifier only.
+
+            An application record that has already been paired must not stay
+            available for a second pairing. One request can produce several
+            kernel events (a file read produces two), and an already-matched
+            record left in the proximity buckets pairs with the next one,
+            emitting a second correlated alert for a single request. Measured
+            in a dry run: 269 file-path matches against roughly 166
+            authorisation failures.
+
+            The identifier index is populated either way, because the forgery
+            condition pairs an execution with a request of an entirely
+            different kind, and that request may legitimately have been matched
+            already on its own evidence.
+            """
+            self.order.append(e)
+            if e.side == "app":
+                if e.trace_id:
+                    self.by_trace[e.trace_id] = e
+                if not as_candidate or e.kind in INERT_KINDS:
+                    return
+                self.app_temporal.append(e)
+                if e.kind in DENIAL_KINDS:
+                    if e.endpoint:
+                        self.by_endpoint[e.endpoint].append(e)
+                    if e.file_name:
+                        self.by_file[e.file_name].append(e)
+            else:
+                self.kernel_temporal.append(e)
+                if e.label:
+                    self.by_label[e.label] = e
+                if e.endpoint:
+                    self.by_endpoint[e.endpoint].append(e)
+                if e.path:
+                    self.by_file[os.path.basename(e.path)].append(e)
+
+        def expire(self, watermark: float):
+            horizon = watermark - (WINDOW_MS / 1000.0)
+            pending_horizon = watermark - (PENDING_HORIZON_MS / 1000.0)
+            trace_horizon = watermark - TRACE_HORIZON_S
+            expired_kernel = []
+
+            while self.app_temporal and self.app_temporal[0].ts < horizon:
+                self.app_temporal.popleft()
+            while self.kernel_temporal and self.kernel_temporal[0].ts < horizon:
+                self.kernel_temporal.popleft()
+
+            while self.pending_execve and self.pending_execve[0].ts < pending_horizon:
+                k = self.pending_execve.popleft()
+                if k.alive:
+                    k.alive = False
+                    expired_kernel.append((k, "unverified_label"))
+
+            # Bounded by the correlation window rather than the execution
+            # buffer horizon: these events carry no identifier, so the window
+            # is the only claim being made about them.
+            while self.pending_kernel and self.pending_kernel[0].ts < horizon:
+                k = self.pending_kernel.popleft()
+                if k.alive:
+                    k.alive = False
+                    expired_kernel.append((k, k.pending_reason or "no_match"))
+
+            while self.order and self.order[0].ts < trace_horizon:
+                e = self.order.popleft()
+                e.alive = False
+                if e.side == "app":
+                    if e.trace_id and self.by_trace.get(e.trace_id) is e:
+                        del self.by_trace[e.trace_id]
+                else:
+                    if e.label and self.by_label.get(e.label) is e:
+                        del self.by_label[e.label]
+
+            # by_file and by_endpoint are deliberately not swept here. An entry
+            # leaves one of those buckets only when _take consumes it, so an
+            # unmatched candidate stays in its deque for the life of the
+            # process. Correctness does not depend on the sweep: the loop above
+            # sets alive = False on every expired event, _take skips dead
+            # candidates, and its scan breaks as soon as it reaches a timestamp
+            # below the window, so an expired entry can never be returned as a
+            # match. The residual cost is memory, bounded here because a cell
+            # runs for 30 seconds and the correlator is replaced between cells.
+            # A long-lived deployment would sweep these on the same horizon.
+            return expired_kernel
+
+        @staticmethod
+        def _take(bucket, lo, hi, pred):
+            for i in range(len(bucket) - 1, -1, -1):
+                cand = bucket[i]
+                if not cand.alive:
+                    continue
+                if cand.ts < lo:
+                    break
+                if cand.ts <= hi and pred(cand):
+                    cand.alive = False
+                    del bucket[i]
+                    return cand
+            return None
+
+        def match_kernel(self, k: Ev):
+            """Returns (partner, outcome).
+
+            outcome "buffer_execve" and "defer" mean the event is being held;
+            the caller must not report it. Any other outcome with no partner is
+            terminal and is reported immediately."""
+            lo, hi = k.ts - (WINDOW_MS / 1000.0), k.ts + (WINDOW_MS / 1000.0)
+
+            if k.kind == "execve":
+                if JOIN_MODE != "deterministic":
+                    return None, "mode_cannot_match_execve"
+                if not k.label:
+                    return None, "no_label"
+                a = self.by_trace.get(k.label)
+                if a is None:
+                    k.alive = True
+                    self.pending_execve.append(k)
+                    return None, "buffer_execve"
+                return a, "trace_id"
+
+            if k.kind == "tcp_connect":
+                if JOIN_MODE == "temporal":
+                    a = self._take(self.app_temporal, lo, hi,
+                                   lambda e: e.side == "app" and e.kind in NET_KINDS)
+                    return (a, "temporal") if a else (None, "defer")
+                if not k.endpoint:
+                    return None, "no_endpoint"
+                a = self._take(self.by_endpoint[k.endpoint], lo, hi,
+                               lambda e: e.side == "app" and e.kind == "app_ssrf_denial")
+                return (a, "dest_endpoint") if a else (None, "defer")
+
+            if k.kind == "file_open":
+                if JOIN_MODE == "temporal":
+                    a = self._take(self.app_temporal, lo, hi,
+                                   lambda e: e.side == "app" and e.kind in FILE_KINDS)
+                    return (a, "temporal") if a else (None, "defer")
+                if k.path:
+                    base = os.path.basename(k.path)
+                    a = self._take(self.by_file[base], lo, hi,
+                                   lambda e: e.side == "app" and e.kind == "app_authz_denial")
+                    return (a, "file_path") if a else (None, "defer")
+                return None, "no_path"
+
+            return None, "no_rule"
+
+        def match_app(self, a: Ev):
+            lo, hi = a.ts - (WINDOW_MS / 1000.0), a.ts + (WINDOW_MS / 1000.0)
+
+            if JOIN_MODE == "deterministic" and a.trace_id:
+                # Deliberately not restricted to the subprocess route. Under
+                # forgery the label an attacker declares belongs to a victim
+                # request of an entirely different kind, and refusing to pair
+                # them would conceal the failure this experiment exists to
+                # measure.
+                for i in range(len(self.pending_execve) - 1, -1, -1):
+                    k = self.pending_execve[i]
+                    if k.alive and k.label == a.trace_id:
+                        k.alive = False
+                        del self.pending_execve[i]
+                        return k, "trace_id"
+                k = self.by_label.get(a.trace_id)
+                if k is not None and k.alive:
+                    k.alive = False
+                    return k, "trace_id"
+
+            if a.kind in INERT_KINDS:
+                return None, None
+
+            if a.kind in NET_KINDS:
+                if JOIN_MODE == "temporal":
+                    k = self._take(self.kernel_temporal, lo, hi,
+                                   lambda e: e.side == "kernel" and e.kind == "tcp_connect")
+                    return (k, "temporal") if k else (None, None)
+                if a.kind != "app_ssrf_denial" or not a.endpoint:
+                    return None, None
+                k = self._take(self.by_endpoint[a.endpoint], lo, hi,
+                               lambda e: e.side == "kernel" and e.kind == "tcp_connect")
+                return (k, "dest_endpoint") if k else (None, None)
+
+            if a.kind in FILE_KINDS:
+                if JOIN_MODE == "temporal":
+                    k = self._take(self.kernel_temporal, lo, hi,
+                                   lambda e: e.side == "kernel" and e.kind == "file_open")
+                    return (k, "temporal") if k else (None, None)
+                if a.kind != "app_authz_denial" or not a.file_name:
+                    return None, None
+                k = self._take(self.by_file[a.file_name], lo, hi,
+                               lambda e: e.side == "kernel" and e.kind == "file_open")
+                return (k, "file_path") if k else (None, None)
+
+            return None, None
+
+    ALERT_FOR = {
+        "execve":      ("RCE_COMMAND_INJECTION", 2),
+        "tcp_connect": ("SSRF_UNAUTHORIZED_PROBE", 1),
+        "file_open":   ("BOLA_AUTHORIZATION_BYPASS", 1),
+    }
+
+    def extract_label(proc):
+        ev = proc.get("environment_variables")
+        if isinstance(ev, list):
+            for item in ev:
+                if isinstance(item, dict) and item.get("Key") == "TRACE_ID":
+                    return item.get("Value", "")
+                if isinstance(item, str) and item.startswith("TRACE_ID="):
+                    return item.split("=", 1)[1]
+        for item in str(proc.get("env", "")).split():
+            if item.startswith("TRACE_ID="):
+                return item.split("=", 1)[1]
+        return ""
+
+    def sock_endpoint(parsed, stats):
+        """Destination address and port from the tcp_connect argument.
+
+        Port matters because concurrent probes of one host would otherwise
+        index under a single key, and the correlator would pair an application
+        record with a kernel event arbitrarily among them. If the exporter
+        omits the port the join degrades to address scope; that is counted
+        rather than silently tolerated."""
+        try:
+            sock = (parsed.get("process_kprobe", {})
+                          .get("args", [{}])[0]
+                          .get("sock_arg", {}))
+        except Exception:
+            return "", ""
+        daddr = sock.get("daddr", "") or ""
+        dport = sock.get("dport", "")
+        if not daddr:
+            return "", ""
+        if dport in ("", None):
+            stats["sock_without_dport"] += 1
+            return daddr, f"{daddr}:0"
+        return daddr, f"{daddr}:{int(dport)}"
+
+    async def main():
+        nc = await nats.connect(os.getenv(
+            "NATS_URL", "nats://nats.sarvajna-infra.svc.cluster.local:4222"))
+        js = nc.jetstream()
+        for name, subj in (("TELEMETRY", "telemetry.events"),
+                           ("ALERTS", "alerts.critical")):
+            try:
+                await js.add_stream(name=name, subjects=[subj])
+            except Exception:
+                pass
+
+        sub = await js.pull_subscribe("telemetry.events", durable="cep-pull-consumer")
+        idx = Index()
+        watermark = 0.0
+        stats = defaultdict(int)
+        last_report = time.time()
+        idle_ticks = 0
+
+        print(f"[CEP] run={RUN_ID} mode={JOIN_MODE} window={WINDOW_MS}ms "
+              f"pending_horizon={PENDING_HORIZON_MS}ms "
+              f"trace_horizon={TRACE_HORIZON_S}s "
+              f"ignore_daddrs={sorted(IGNORE_DADDRS)}", flush=True)
+
+        while True:
+            if time.time() - last_report > 5:
+                try:
+                    info = await sub.consumer_info()
+                    active = {k: v for k, v in stats.items()
+                              if k.startswith(("match_", "nomatch_", "ignored_", "dropped_"))}
+                    held = (sum(1 for e in idx.pending_kernel if e.alive)
+                            + sum(1 for e in idx.pending_execve if e.alive))
+                    print(f"[CEP] processed={stats['events']} "
+                          f"pending={info.num_pending} held={held} "
+                          f"{active}", flush=True)
+                except Exception:
+                    pass
+                last_report = time.time()
+
+            try:
+                msgs = await sub.fetch(batch=512, timeout=1)
+                idle_ticks = 0
+            except Exception:
+                idle_ticks += 1
+                if idle_ticks >= 3:
+                    wm = datetime.now(timezone.utc).timestamp() - IDLE_GRACE_S
+                    if wm > watermark:
+                        watermark = wm
+                    for k_exp, reason in idx.expire(watermark):
+                        stats[f"nomatch_{reason}"] += 1
+                        at, tier = ALERT_FOR.get(k_exp.kind, ("UNKNOWN", 1))
+                        await emit(js, at, tier, k_exp.pod, None, reason,
+                                   k_exp.ts, k_exp.true_ts, k_exp.collector_ts)
+                await asyncio.sleep(0.01)
+                continue
+
+            for msg in msgs:
+                try:
+                    d = json.loads(msg.data.decode())
+                    pod = d.get("pod_name", "")
+                    src = d.get("source", "")
+                    raw = d.get("raw_payload") or d.get("message") or ""
+                    parsed = {}
+                    if isinstance(raw, dict):
+                        parsed = raw
+                    elif isinstance(raw, str) and raw.startswith("{"):
+                        try:
+                            parsed = json.loads(raw)
+                        except Exception:
+                            parsed = {}
+
+                    pol = (parsed.get("process_kprobe", {}).get("policy_name", "")
+                           or parsed.get("policy_name", ""))
+                    if src == "kernel" and pol.startswith("sarvajna-"):
+                        pod = "target-app"
+
+                    if not pod.startswith("target-app"):
+                        await msg.ack()
+                        continue
+
+                    ev_ts = parse_ts(d.get("event_time", ""))
+                    if ev_ts <= 0:
+                        ev_ts = datetime.now(timezone.utc).timestamp()
+
+                    watermark = max(watermark, ev_ts)
+                    for k_exp, reason in idx.expire(watermark):
+                        stats[f"nomatch_{reason}"] += 1
+                        at, tier = ALERT_FOR.get(k_exp.kind, ("UNKNOWN", 1))
+                        await emit(js, at, tier, k_exp.pod, None, reason,
+                                   k_exp.ts, k_exp.true_ts, k_exp.collector_ts)
+
+                    stats["events"] += 1
+                    true_ts = parse_ts(d.get("kernel_time") or d.get("app_time") or "")
+                    collector_ts = parse_ts(d.get("collector_time") or "")
+
+                    if src == "application":
+                        kind = d.get("event_type", "")
+                        tip = parsed.get("target_ip") or ""
+                        tport = parsed.get("target_port")
+                        endpoint = ""
+                        if tip:
+                            endpoint = (f"{tip}:{int(tport)}"
+                                        if tport not in ("", None) else f"{tip}:0")
+                        e = Ev(side="app", pod=pod, kind=kind, ts=ev_ts,
+                               true_ts=true_ts, collector_ts=collector_ts,
+                               user_id=parsed.get("user_id") or "unknown",
+                               tenant_id=parsed.get("tenant_id") or "unknown",
+                               trace_id=d.get("trace_id") or parsed.get("trace_id") or "",
+                               attack_id=d.get("attack_id") or parsed.get("attack_id") or "",
+                               endpoint=endpoint,
+                               file_name=parsed.get("requested_file_name") or "")
+                        k, how = idx.match_app(e)
+                        if k:
+                            at, tier = ALERT_FOR.get(k.kind, ("UNKNOWN", 1))
+                            await emit(js, at, tier, pod, e, how,
+                                       k.ts, k.true_ts, k.collector_ts)
+                            stats[f"match_{how}"] += 1
+                        idx.add(e, as_candidate=(k is None))
+
+                    elif src == "kernel":
+                        et = d.get("event_type")
+                        proc = parsed.get("process_exec", {}).get("process", {})
+                        bin_name = proc.get("binary", "")
+
+                        # Shells and runtime binaries are dropped so that the
+                        # payload itself, not its wrapper, is the correlated
+                        # event. A payload executing wholly inside one of these
+                        # produces no correlated execution; that evasion is not
+                        # evaluated here and is stated as a limitation.
+                        if et == "execve" and bin_name in (
+                            "/bin/ping", "/bin/sh", "/bin/env", "/usr/bin/env",
+                            "/usr/bin/node", "/usr/local/bin/node",
+                            "/usr/local/bin/npm",
+                            # The harness reads this pod's cgroup counters through
+                            # kubectl exec, which spawns these inside the pod under
+                            # measurement. Unlabelled executions are the signature
+                            # of the label-stripping condition, so leaving them in
+                            # would contaminate that counter with the apparatus.
+                            "/bin/cat", "/usr/bin/cat", "/bin/busybox",
+                        ):
+                            stats["dropped_runtime_binary"] += 1
+                            await msg.ack()
+                            continue
+
+                        e = Ev(side="kernel", pod=pod, kind=et, ts=ev_ts,
+                               true_ts=true_ts, collector_ts=collector_ts)
+                        if et == "execve":
+                            e.label = extract_label(proc)
+                            if not e.label:
+                                stats["execve_no_label"] += 1
+                        elif et == "tcp_connect":
+                            daddr, e.endpoint = sock_endpoint(parsed, stats)
+                            if daddr and daddr in IGNORE_DADDRS:
+                                stats["ignored_infra_connect"] += 1
+                                await msg.ack()
+                                continue
+                        elif et == "file_open":
+                            e.path = (parsed.get("process_kprobe", {})
+                                            .get("args", [{}])[0]
+                                            .get("file_arg", {}).get("path", ""))
+
+                        a, how = idx.match_kernel(e)
+                        at, tier = ALERT_FOR.get(et, ("UNKNOWN", 1))
+                        if a:
+                            await emit(js, at, tier, pod, a, how,
+                                       e.ts, e.true_ts, e.collector_ts)
+                            stats[f"match_{how}"] += 1
+                        elif how == "buffer_execve":
+                            # Already held by match_kernel. Not indexed: an
+                            # execution is matched by its identifier, and
+                            # indexing it as well would expose it to proximity
+                            # matching it must not be subject to.
+                            pass
+                        elif how == "defer":
+                            # Held for one window. Indexed so a later
+                            # application record can still claim it; reported
+                            # only if the window closes first.
+                            e.pending_reason = "no_match"
+                            idx.pending_kernel.append(e)
+                            idx.add(e)
+                        else:
+                            # Terminal: no later arrival can change the outcome.
+                            stats[f"nomatch_{how}"] += 1
+                            await emit(js, at, tier, pod, None, how,
+                                       e.ts, e.true_ts, e.collector_ts)
+                            if e.label or et != "execve":
+                                idx.add(e)
+
+                    await msg.ack()
+                except Exception:
+                    await msg.ack()
+
+    async def emit(js, alert_type, tier, pod, ctx, how,
+                   k_ts, k_true_ts=0.0, k_collector_ts=0.0):
+        await js.publish("alerts.critical", json.dumps({
+            "run_id": RUN_ID,
+            "alert_type": alert_type,
+            "tier": tier,
+            "pod_name": pod,
+            "correlated": ctx is not None,
+            "join_mode": JOIN_MODE,
+            "window_ms": WINDOW_MS,
+            "pending_horizon_ms": PENDING_HORIZON_MS,
+            "matched_on": how,
+            "user_id":   ctx.user_id   if ctx else None,
+            "tenant_id": ctx.tenant_id if ctx else None,
+            "trace_id":  ctx.trace_id  if ctx else None,
+            "attack_id": ctx.attack_id if ctx else None,
+            # Emission time of the application record, so end-to-end latency
+            # can be measured from the request rather than from the kernel
+            # event.
+            "t_app_emit": ctx.true_ts if ctx else 0.0,
+            "t_kernel": k_ts,
+            "t_kernel_true": k_true_ts,
+            "t_collector": k_collector_ts,
+            "t_correlate": datetime.now(timezone.utc).timestamp(),
+        }).encode())
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sarvajna-cep
+  namespace: sarvajna-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sarvajna-cep
+  template:
+    metadata:
+      labels:
+        app: sarvajna-cep
+    spec:
+      # The in-memory indexes are not shareable, so a second replica does not
+      # distribute the work, it partitions it: an application record and the
+      # kernel event it explains land in different processes and the join can
+      # never fire. Single replica is a correctness requirement, and the
+      # harness waits for the outgoing pod to terminate before collecting,
+      # because a rolling update leaves two consumers on one durable
+      # subscription for as long as the termination grace period.
+      containers:
+        - name: cep-worker
+          image: sarvajna-python-base:v2
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-u", "/app/engine.py"]
+          env:
+            - name: JOIN_MODE
+              value: "deterministic"
+            - name: CORRELATION_WINDOW_MS
+              value: "10000"
+            - name: PENDING_EXECVE_HORIZON_MS
+              value: "10000"
+            - name: TRACE_HORIZON_S
+              value: "60"
+            - name: IGNORE_DADDRS
+              value: ""
+            - name: BENCHMARK_RUN_ID
+              value: "unset"
+            - name: NATS_URL
+              value: "nats://nats.sarvajna-infra.svc.cluster.local:4222"
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: "2"
+          volumeMounts:
+            - name: engine-script
+              mountPath: /app/engine.py
+              subPath: engine.py
+      volumes:
+        - name: engine-script
+          configMap:
+            name: cep-engine-config

@@ -1,0 +1,284 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vector
+  namespace: sarvajna-infra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vector
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vector
+subjects:
+  - kind: ServiceAccount
+    name: vector
+    namespace: sarvajna-infra
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-config
+  namespace: sarvajna-infra
+data:
+  vector.yaml: |
+    data_dir: /var/lib/vector
+
+    sources:
+      # Both sides now use the same mechanism. The kubernetes_logs source adds
+      # discovery, metadata enrichment and its own read cadence, and measured
+      # 1950 to 3026 ms at p95 against 120 to 373 ms for the file source on
+      # identical hardware with identical medians. The kernel event for a
+      # request then reaches the correlator seconds before the application
+      # record that explains it, and waits in the buffer until it arrives.
+      #
+      # Pod metadata is not needed here: the only consumer is the correlator,
+      # which identifies the application by the pod name the application writes
+      # into its own records.
+      app_logs:
+        type: file
+        include:
+          # The application container only. A wildcard here also matches the log
+          # directories of previous pods, which the kubelet leaves on disk until
+          # it collects them. Those contain real application records with old
+          # timestamps and are replayed as fresh telemetry: measured 19924
+          # kernel file opens against 7886 application records, where one read
+          # produces exactly two.
+          - "/var/log/pods/default_target-app-*/nextjs/*.log"
+        read_from: end
+        glob_minimum_cooldown_ms: 50
+        # Content older than two seconds is skipped rather than replayed.
+        #
+        # The application log is written in bursts and is silent between them;
+        # the kernel export file is written continuously. On resuming a file it
+        # has stopped tracking, the source reads forward from its stored offset,
+        # so the first seconds of a burst are consumed as backlog. Measured:
+        # application records collected 9475 ms late in the first bucket of a
+        # burst, decaying by 1000 ms per second to 3 ms after ten seconds, while
+        # kernel records from an identically configured source held 4 ms
+        # throughout. The correlator then held each kernel event waiting for a
+        # partner that had not yet been delivered.
+        ignore_older_secs: 2
+        fingerprint:
+          strategy: device_and_inode
+
+      tetragon_direct:
+        type: file
+        include:
+          - "/var/run/cilium/tetragon/tetragon.log"
+        read_from: end
+        glob_minimum_cooldown_ms: 50
+        fingerprint:
+          strategy: device_and_inode
+
+    transforms:
+      normalize:
+        type: remap
+        inputs: ["app_logs", "tetragon_direct"]
+        source: |
+          # The container runtime prefixes each line with its own timestamp,
+          # stream name and flags. Tetragon's export file has no prefix, so the
+          # strip is conditional on finding one.
+          #
+          # This must run BEFORE raw_payload is assigned. The correlator parses
+          # raw_payload in preference to message, and a payload that still
+          # carries the prefix does not begin with a brace, so it is not parsed
+          # as JSON at all: every application record would lose its principal,
+          # its object name and its destination, and the resource-identity joins
+          # would have no key to match on.
+          .runtime_time = null
+          line = to_string(.message) ?? ""
+          parts = split(line, " ", limit: 4)
+          if length(parts) == 4 && (parts[1] == "stdout" || parts[1] == "stderr") {
+            .message = parts[3]
+            # Kept rather than discarded. It splits collection delay into two
+            # parts with different causes and different fixes: application emit
+            # to runtime receipt is the pipe, runtime receipt to collector read
+            # is this source.
+            .runtime_time = parts[0]
+          }
+
+          .raw_payload = to_string(.message) ?? ""
+          .source = "unknown"
+          .event_type = "generic"
+          .pod_name = "unknown"
+          .ingest_time = to_string(now())
+          .collector_time = to_string(.timestamp) ?? .ingest_time
+          # Null rather than empty: these are nullable timestamp columns, and
+          # an empty string is not a valid value for one.
+          .kernel_time = null
+          .app_time = null
+          .trace_id = ""
+          .attack_id = ""
+
+          parsed, err = parse_json(.message)
+          if err == null {
+                .event_time = .ingest_time
+                if exists(parsed.process_exec) || exists(parsed.process_kprobe) {
+                  .source = "kernel"
+                  if exists(parsed.time) {
+                    .kernel_time = to_string!(parsed.time)
+                  }
+              if exists(parsed.process_exec) {
+                .event_type = "execve"
+                # PROCESS_EXEC is exported by Tetragon's base exporter, which
+                # has no pod scope: the node shares the host kernel, so every
+                # process on the machine appears here, including processes
+                # belonging to the operator rather than to the cluster. The
+                # TracingPolicies that produce file and network events carry a
+                # podSelector and are already scoped; this event set is not.
+                #
+                # Events that cannot be resolved to a pod are dropped below and
+                # never persisted. The correlator discards them anyway, but
+                # dropping them at the collector keeps host activity out of the
+                # telemetry archive, out of the message bus, and out of the
+                # batches whose service time the latency figures measure.
+                if exists(parsed.process_exec.process.pod.name) {
+                  .pod_name = to_string!(parsed.process_exec.process.pod.name)
+                } else if exists(parsed.process_exec.process.pod.namespace) && parsed.process_exec.process.pod.namespace == "default" {
+                  .pod_name = "target-app"
+                }
+              } else if exists(parsed.process_kprobe) {
+                if exists(parsed.process_kprobe.process.pod.name) {
+                  .pod_name = to_string!(parsed.process_kprobe.process.pod.name)
+                } else if starts_with(to_string(parsed.process_kprobe.policy_name) ?? "", "sarvajna-") {
+                  .pod_name = "target-app"
+                }
+                fn = to_string(parsed.process_kprobe.function_name) ?? ""
+                if fn == "tcp_connect" {
+                  .event_type = "tcp_connect"
+                } else if fn == "security_file_open" {
+                  .event_type = "file_open"
+                }
+              }
+              } else if exists(parsed.type) {
+                  .source = "application"
+                  .event_type = to_string!(parsed.type)
+                  if exists(parsed.pod_name) {
+                    .pod_name = to_string!(parsed.pod_name)
+                  }
+                  if exists(parsed.timestamp) {
+                    .app_time = to_string!(parsed.timestamp)
+                  }
+                  if exists(parsed.trace_id) {
+                .trace_id = to_string!(parsed.trace_id)
+              }
+              if exists(parsed.attack_id) {
+                .attack_id = to_string!(parsed.attack_id)
+              }
+            }
+          }
+
+      # Two exclusions.
+      #
+      # source == "unknown": a line that parsed as neither an application
+      # record nor a kernel event.
+      #
+      # kernel events with no resolved pod: host processes. Tetragon observes
+      # the whole machine because the node shares its kernel, so without this
+      # the archive accumulates the operator's own activity, which is both a
+      # privacy matter and a measurement one: that traffic shares the message
+      # bus and the correlator's fetch batches with the events under study.
+      drop_noise:
+        type: filter
+        inputs: ["normalize"]
+        condition: |
+          .source != "unknown" &&
+          !(.source == "kernel" && .pod_name == "unknown")
+
+    sinks:
+      nats_fast_path:
+        type: nats
+        inputs: ["drop_noise"]
+        url: "nats://nats.sarvajna-infra.svc.cluster.local:4222"
+        subject: "telemetry.events"
+        encoding:
+          codec: json
+
+      clickhouse_cold_path:
+        type: clickhouse
+        inputs: ["drop_noise"]
+        endpoint: "http://clickhouse.sarvajna-infra.svc.cluster.local:8123"
+        database: "sarvajna"
+        table: "raw_telemetry"
+        skip_unknown_fields: true
+        auth:
+          strategy: "basic"
+          user: "default"
+          password: "amogh_secure_pwd"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vector
+  namespace: sarvajna-infra
+spec:
+  selector:
+    matchLabels:
+      app: vector
+  template:
+    metadata:
+      labels:
+        app: vector
+    spec:
+      serviceAccountName: vector
+      containers:
+        - name: vector
+          image: timberio/vector:0.58.0-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: VECTOR_SELF_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: VECTOR_LOG
+              value: "info"
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: "1"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/vector
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: k3s-containerd
+              mountPath: /var/lib/rancher/k3s/agent/containerd
+              readOnly: true
+            - name: tetragon-export
+              mountPath: /var/run/cilium/tetragon
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/vector
+      volumes:
+        - name: config
+          configMap:
+            name: vector-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: k3s-containerd
+          hostPath:
+            path: /var/lib/rancher/k3s/agent/containerd
+        - name: tetragon-export
+          hostPath:
+            path: /var/run/cilium/tetragon
+            type: DirectoryOrCreate
+        - name: data
+          hostPath:
+            path: /var/lib/vector-sarvajna
+            type: DirectoryOrCreate

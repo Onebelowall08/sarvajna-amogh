@@ -1,0 +1,4 @@
+key,cell,mode,adversarial,revocations,revoked_principals,requests_issued,requests_refused,benign_refused,attacks_refused,principals_refused,refused_pct,precision,false_positives,misattributed
+ENFORCE_Forgery__r1,ENFORCE_Forgery,deterministic,True,1266,1266,5297,1202,1202,0,20,22.69,1.0,0,439
+ENFORCE_TemporalBaseline__r1,ENFORCE_TemporalBaseline,temporal,False,1221,1221,5343,3519,3519,0,120,65.86,0.8669,169,0
+ENFORCE_Baseline__r1,ENFORCE_Baseline,deterministic,False,1635,1635,5264,0,0,0,0,0.0,1.0,0,0

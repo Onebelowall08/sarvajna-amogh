@@ -1,0 +1,657 @@
+{
+  "at": "2026-10-05T07:25:05.094970+00:00",
+  "verdict": "READY (with warnings)",
+  "checks": [
+    {
+      "layer": 0,
+      "name": "kubectl on PATH",
+      "status": "PASS",
+      "observed": "/usr/bin/kubectl",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "docker on PATH",
+      "status": "PASS",
+      "observed": "/usr/bin/docker",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "helm on PATH",
+      "status": "PASS",
+      "observed": "/usr/local/bin/helm",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "jq on PATH",
+      "status": "PASS",
+      "observed": "/usr/bin/jq",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "locust on PATH",
+      "status": "PASS",
+      "observed": "/home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module clickhouse_driver",
+      "status": "PASS",
+      "observed": "importable",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module nats",
+      "status": "PASS",
+      "observed": "importable",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module pandas",
+      "status": "PASS",
+      "observed": "importable",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module numpy",
+      "status": "PASS",
+      "observed": "importable",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module matplotlib",
+      "status": "PASS",
+      "observed": "importable",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "node container running",
+      "status": "PASS",
+      "observed": "k3d-sarvajna-cluster-server-0",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "apiserver readyz",
+      "status": "PASS",
+      "observed": "ok",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/clickhouse",
+      "status": "PASS",
+      "observed": "1/1 Running restarts=0 age=6h",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/nats",
+      "status": "PASS",
+      "observed": "1/1 Running restarts=0 age=6h",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/postgres",
+      "status": "PASS",
+      "observed": "1/1 Running restarts=0 age=6h",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/sarvajna-cep",
+      "status": "PASS",
+      "observed": "1/1 Running restarts=0 age=20m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/soar-worker",
+      "status": "PASS",
+      "observed": "1/1 Running restarts=0 age=19m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/vector",
+      "status": "WARN",
+      "observed": "1/1 Running restarts=1 age=19h",
+      "remedy": "kubectl logs -n sarvajna-infra vector-qtvbf --previous"
+    },
+    {
+      "layer": 1,
+      "name": "default/target-app",
+      "status": "PASS",
+      "observed": "1/1 Running restarts=0 age=3h43m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "kube-system/tetragon",
+      "status": "PASS",
+      "observed": "2/2 Running restarts=0 age=3h43m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "kube-system/cilium-q",
+      "status": "WARN",
+      "observed": "1/1 Running restarts=9 age=27d",
+      "remedy": "kubectl logs -n kube-system cilium-qppln --previous"
+    },
+    {
+      "layer": 1,
+      "name": "exactly one correlator",
+      "status": "PASS",
+      "observed": "1 pod(s)",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "localhost:9000 (clickhouse)",
+      "status": "PASS",
+      "observed": "reachable",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "localhost:4222 (nats)",
+      "status": "PASS",
+      "observed": "reachable",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "localhost:3501 (target-app)",
+      "status": "PASS",
+      "observed": "reachable",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "endpoint resolution",
+      "status": "PASS",
+      "observed": "clickhouse_pod=10.42.0.140 nats_pod=10.42.0.155 postgres_pod=10.42.0.210 postgres_svc=10.43.170.130 clickhouse_svc=10.43.145.181 target_app_pod=10.42.0.237",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "clickhouse responding",
+      "status": "PASS",
+      "observed": "1",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table detections",
+      "status": "PASS",
+      "observed": "31 columns",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table ground_truth",
+      "status": "PASS",
+      "observed": "12 columns",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table revocations",
+      "status": "PASS",
+      "observed": "10 columns",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table raw_telemetry",
+      "status": "PASS",
+      "observed": "8 columns",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "detections.t_kernel precision",
+      "status": "PASS",
+      "observed": "DateTime64(6)",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "detections.t_correlate precision",
+      "status": "PASS",
+      "observed": "DateTime64(6)",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "detections.t_action precision",
+      "status": "PASS",
+      "observed": "DateTime64(6)",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "detections.window_ms range",
+      "status": "PASS",
+      "observed": "UInt32",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "existing row counts",
+      "status": "INFO",
+      "observed": "raw_telemetry=14051  ground_truth=4625  revocations=1223  detections=7839",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "node disk headroom",
+      "status": "PASS",
+      "observed": "101G free",
+      "remedy": ""
+    },
+    {
+      "layer": 4,
+      "name": "revocations table",
+      "status": "PASS",
+      "observed": "revocations",
+      "remedy": ""
+    },
+    {
+      "layer": 4,
+      "name": "revocations currently in force",
+      "status": "PASS",
+      "observed": "0 row(s)",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "stream TELEMETRY",
+      "status": "PASS",
+      "observed": "230 msgs, 1 consumer(s)",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "stream ALERTS",
+      "status": "PASS",
+      "observed": "129 msgs, 1 consumer(s)",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "tetragon enable-process-environment-variables",
+      "status": "PASS",
+      "observed": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "tetragon filter-environment-variables",
+      "status": "PASS",
+      "observed": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "tetragon enable-cri",
+      "status": "PASS",
+      "observed": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "tetragon cri-endpoint",
+      "status": "PASS",
+      "observed": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "tetragon enable-cgidmap",
+      "status": "PASS",
+      "observed": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "enrichment retry ceiling",
+      "status": "INFO",
+      "observed": "retries=0 delay=1s -> up to 0s added exec-path latency",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "policy sarvajna-file-open",
+      "status": "PASS",
+      "observed": "attached",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "policy sarvajna-tcp-connect",
+      "status": "PASS",
+      "observed": "attached",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "tetragon clock vs node",
+      "status": "PASS",
+      "observed": "+1.2s (tolerance 60s)",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "quarantine policy present",
+      "status": "PASS",
+      "observed": "isolate-compromised-pod   27d   True",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "cilium agent",
+      "status": "PASS",
+      "observed": "cilium-qppln",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "policy enforcement mode",
+      "status": "PASS",
+      "observed": "default",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "target endpoint enforcement",
+      "status": "PASS",
+      "observed": "2193 Disabled Disabled 15777 k8s:app=target-app 10.42.0.237 ready",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "health endpoint",
+      "status": "PASS",
+      "observed": "target-app-6f69f56cf5-47xnz",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "revocation enforcement enabled",
+      "status": "PASS",
+      "observed": "enforce=True revoked=0 refreshes=26314",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "revocation store reachable",
+      "status": "PASS",
+      "observed": "last refresh 375ms ago",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "outbound allowlist",
+      "status": "PASS",
+      "observed": "10.42.0.155:4222",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "restricted objects present",
+      "status": "PASS",
+      "observed": "513 of 512",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "bridge canary",
+      "status": "WARN",
+      "observed": "not in current log window",
+      "remedy": "it fires only at startup; kubectl rollout restart -n default deployment/target-app to re-check"
+    },
+    {
+      "layer": 9,
+      "name": "vector: tetragon_direct",
+      "status": "PASS",
+      "observed": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "vector: read_from: end",
+      "status": "PASS",
+      "observed": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "vector: kernel_time",
+      "status": "PASS",
+      "observed": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "vector: collector_time",
+      "status": "PASS",
+      "observed": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "vector: .pod_name == \"unknown\"",
+      "status": "PASS",
+      "observed": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "no host telemetry collected",
+      "status": "PASS",
+      "observed": "0 unresolved kernel events in the last 30 min",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "sarvajna-cep JOIN_MODE",
+      "status": "PASS",
+      "observed": "JOIN_MODE=deterministic",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "sarvajna-cep CORRELATION_WINDOW_MS",
+      "status": "PASS",
+      "observed": "CORRELATION_WINDOW_MS=10000",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "sarvajna-cep PENDING_EXECVE_HORIZON_MS",
+      "status": "PASS",
+      "observed": "PENDING_EXECVE_HORIZON_MS=10000",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "sarvajna-cep IGNORE_DADDRS",
+      "status": "PASS",
+      "observed": "IGNORE_DADDRS=10.42.0.210,10.43.170.130",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "soar-worker ENRICH_RETRIES",
+      "status": "PASS",
+      "observed": "ENRICH_RETRIES=0",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "soar-worker ENFORCE_REVOCATION",
+      "status": "PASS",
+      "observed": "ENFORCE_REVOCATION=true",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "soar-worker TIER2_ENABLED",
+      "status": "PASS",
+      "observed": "TIER2_ENABLED=false",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "soar-worker ACT_ON_UNCORRELATED",
+      "status": "PASS",
+      "observed": "ACT_ON_UNCORRELATED=false",
+      "remedy": ""
+    },
+    {
+      "layer": 9,
+      "name": "target not quarantined",
+      "status": "PASS",
+      "observed": "clean",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "containment latency (apply)",
+      "status": "INFO",
+      "observed": "21.0s",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "pod-network traffic severed",
+      "status": "PASS",
+      "observed": "ingress=BLOCKED egress=BLOCKED still_enforced=True",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "port-forward survives containment",
+      "status": "INFO",
+      "observed": "OK",
+      "remedy": "the workload generator reaches the application through a path the policy does not govern; a deployment serving ingress over the pod network would be isolated in both directions"
+    },
+    {
+      "layer": 7,
+      "name": "recovery after reset",
+      "status": "PASS",
+      "observed": "ingress=OK egress=OK  [BENCHMARK] Quarantine lifted on 1 pod(s); datapath converged after 30s.",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "requests delivered",
+      "status": "PASS",
+      "observed": "50/50",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "RCE attributed",
+      "status": "PASS",
+      "observed": "10/10 detected  matched_on=trace_id  user=verify_attacker",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "BOLA attributed",
+      "status": "PASS",
+      "observed": "10/10 detected  matched_on=file_path  user=verify_attacker",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "SSRF attributed",
+      "status": "PASS",
+      "observed": "10/10 detected  matched_on=dest_endpoint  user=verify_attacker",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "authorised read not attributed",
+      "status": "PASS",
+      "observed": "0 of 10 correlated",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "allowed fetch not attributed",
+      "status": "PASS",
+      "observed": "0 of 10 correlated",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "revocations recorded",
+      "status": "INFO",
+      "observed": "1\t1",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "one outcome per kernel event",
+      "status": "PASS",
+      "observed": "70 outcomes, 70 detection rows",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "buffer drained with no traffic",
+      "status": "PASS",
+      "observed": "held=0",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "infrastructure connections excluded",
+      "status": "INFO",
+      "observed": "0 (connection pool stayed warm)",
+      "remedy": ""
+    },
+    {
+      "layer": 10,
+      "name": "no duplicate correlations",
+      "status": "PASS",
+      "observed": "BOLA_AUTHORIZATION_BYPASS\t10\t10  RCE_COMMAND_INJECTION\t10\t10  SSRF_UNAUTHORIZED_PROBE\t10\t10",
+      "remedy": ""
+    },
+    {
+      "layer": 11,
+      "name": "principal serves before revocation",
+      "status": "PASS",
+      "observed": "HTTP 200",
+      "remedy": ""
+    },
+    {
+      "layer": 11,
+      "name": "principal refused after revocation",
+      "status": "PASS",
+      "observed": "HTTP 403 after 9.57s",
+      "remedy": ""
+    },
+    {
+      "layer": 11,
+      "name": "revocation effect latency",
+      "status": "INFO",
+      "observed": "9.57s",
+      "remedy": ""
+    }
+  ]
+}

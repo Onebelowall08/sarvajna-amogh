@@ -1,0 +1,454 @@
+{
+  "at": "2026-09-10T10:43:18.533042+00:00",
+  "verdict": "NOT READY",
+  "checks": [
+    {
+      "layer": 0,
+      "name": "kubectl on PATH",
+      "status": "PASS",
+      "detail": "/usr/bin/kubectl",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "docker on PATH",
+      "status": "PASS",
+      "detail": "/usr/bin/docker",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "helm on PATH",
+      "status": "PASS",
+      "detail": "/usr/local/bin/helm",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "jq on PATH",
+      "status": "PASS",
+      "detail": "/usr/bin/jq",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "locust on PATH",
+      "status": "PASS",
+      "detail": "/home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module clickhouse_driver",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module nats",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module pandas",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module numpy",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 0,
+      "name": "python module matplotlib",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "k3d node container running",
+      "status": "PASS",
+      "detail": "k3d-sarvajna-cluster-server-0",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "kube-apiserver readyz",
+      "status": "PASS",
+      "detail": "ok",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/clickhouse",
+      "status": "PASS",
+      "detail": "1/1 Running restarts=0 age=3h25m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/nats",
+      "status": "PASS",
+      "detail": "1/1 Running restarts=0 age=3h25m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/postgres",
+      "status": "PASS",
+      "detail": "1/1 Running restarts=0 age=3h25m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/sarvajna-cep",
+      "status": "PASS",
+      "detail": "1/1 Running restarts=0 age=71m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/soar-worker",
+      "status": "PASS",
+      "detail": "1/1 Running restarts=0 age=3h25m",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "sarvajna-infra/vector",
+      "status": "WARN",
+      "detail": "1/1 Running restarts=1 age=20h",
+      "remedy": "kubectl logs -n sarvajna-infra vector-7zbvv --previous  (check why it restarted)"
+    },
+    {
+      "layer": 1,
+      "name": "default/target-app",
+      "status": "PASS",
+      "detail": "1/1 Running restarts=0 age=25s",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "kube-system/tetragon",
+      "status": "PASS",
+      "detail": "2/2 Running restarts=0 age=16s",
+      "remedy": ""
+    },
+    {
+      "layer": 1,
+      "name": "recent Warning events",
+      "status": "WARN",
+      "detail": "2 recent",
+      "remedy": "kubectl get events -A --field-selector type=Warning | tail -20"
+    },
+    {
+      "layer": 2,
+      "name": "localhost:9000 (clickhouse)",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "localhost:4222 (nats)",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "localhost:3501 (target-app)",
+      "status": "PASS",
+      "detail": "",
+      "remedy": ""
+    },
+    {
+      "layer": 2,
+      "name": "clickhouse ClusterIP resolvable",
+      "status": "PASS",
+      "detail": "10.43.145.181",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "clickhouse responding",
+      "status": "PASS",
+      "detail": "1",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table detections (24 cols)",
+      "status": "PASS",
+      "detail": "complete",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table ground_truth (9 cols)",
+      "status": "PASS",
+      "detail": "complete",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "table raw_telemetry (8 cols)",
+      "status": "PASS",
+      "detail": "complete",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "t_kernel is DateTime64",
+      "status": "PASS",
+      "detail": "DateTime64(6)",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "existing row counts",
+      "status": "INFO",
+      "detail": "raw_telemetry=335157  ground_truth=46269  detections=87400",
+      "remedy": ""
+    },
+    {
+      "layer": 3,
+      "name": "node disk headroom",
+      "status": "PASS",
+      "detail": "64G free, suite needs ~0.14G (447x)",
+      "remedy": ""
+    },
+    {
+      "layer": 4,
+      "name": "stream TELEMETRY",
+      "status": "PASS",
+      "detail": "771 msgs, 1 consumer(s)",
+      "remedy": ""
+    },
+    {
+      "layer": 4,
+      "name": "stream ALERTS",
+      "status": "PASS",
+      "detail": "0 msgs, 1 consumer(s)",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "tetragon enable-process-environment-variables",
+      "status": "PASS",
+      "detail": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "tetragon filter-environment-variables",
+      "status": "PASS",
+      "detail": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "tetragon enable-cri",
+      "status": "PASS",
+      "detail": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "tetragon cri-endpoint",
+      "status": "PASS",
+      "detail": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "tetragon enable-cgidmap",
+      "status": "PASS",
+      "detail": "set",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "enrichment retry ceiling",
+      "status": "PASS",
+      "detail": "retries=15 delay=1s -> 15s max exec-path latency",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "policy sarvajna-file-open",
+      "status": "PASS",
+      "detail": "attached",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "policy sarvajna-tcp-connect",
+      "status": "PASS",
+      "detail": "attached",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "tetragon clock vs node",
+      "status": "PASS",
+      "detail": "-0.5s",
+      "remedy": ""
+    },
+    {
+      "layer": 5,
+      "name": "pod metadata on events",
+      "status": "WARN",
+      "detail": "0/40 events carried a pod name",
+      "remedy": "the CEP/Vector target-app override compensates for this; it is safe only because podSelector filters in the kernel. Disclose it in the methodology."
+    },
+    {
+      "layer": 6,
+      "name": "bridge canary",
+      "status": "PASS",
+      "detail": "expected=canary-1789036855600 observed=canary-1789036855600",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "GET /api/reports (allowed)",
+      "status": "PASS",
+      "detail": "allowed=True trace_id=yes",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "GET /api/reports (BOLA denied)",
+      "status": "PASS",
+      "detail": "allowed=False",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "trace_id leaked in response body",
+      "status": "PASS",
+      "detail": "trace-5eec63d2-a662-439d-b6d3-0eaa19c21da5",
+      "remedy": ""
+    },
+    {
+      "layer": 6,
+      "name": "POST /api/ping (RCE sink)",
+      "status": "PASS",
+      "detail": "{\"output\":\"PING 127.0.0.1 (127.0.0.1): 56 data bytes\\n64 byt",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "vector: tetragon_direct",
+      "status": "PASS",
+      "detail": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "vector: read_from: end",
+      "status": "PASS",
+      "detail": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "vector: kernel_time",
+      "status": "PASS",
+      "detail": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "vector: collector_time",
+      "status": "PASS",
+      "detail": "present",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "sarvajna-cep env JOIN_MODE",
+      "status": "PASS",
+      "detail": "JOIN_MODE=deterministic",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "sarvajna-cep env CORRELATION_WINDOW_MS",
+      "status": "PASS",
+      "detail": "CORRELATION_WINDOW_MS=10000",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "sarvajna-cep env BENCHMARK_RUN_ID",
+      "status": "PASS",
+      "detail": "BENCHMARK_RUN_ID=S20260910-141124__ENRICH_r8_d1__r",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "sarvajna-cep image",
+      "status": "PASS",
+      "detail": "sarvajna-python-base:v1",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "soar-worker image",
+      "status": "PASS",
+      "detail": "sarvajna-python-base:v1",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "target-app not quarantined",
+      "status": "PASS",
+      "detail": "clean",
+      "remedy": ""
+    },
+    {
+      "layer": 7,
+      "name": "stale ground-truth CSVs",
+      "status": "PASS",
+      "detail": "15 files",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "RCE end-to-end",
+      "status": "FAIL",
+      "detail": "0/12 detected after 90s",
+      "remedy": "kubectl logs -n sarvajna-infra deploy/sarvajna-cep --tail=60 | grep '\\[CEP\\]'"
+    },
+    {
+      "layer": 8,
+      "name": "BOLA end-to-end",
+      "status": "PASS",
+      "detail": "12/12 detected (100%)  matched_on=file_path  user=verify_attacker  mttr=5998.9ms  e2e=6002ms",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "SSRF end-to-end",
+      "status": "PASS",
+      "detail": "8/12 detected (67%)  matched_on=dest_ip  user=verify_attacker  mttr=6422.2ms  e2e=6426.7ms",
+      "remedy": ""
+    },
+    {
+      "layer": 8,
+      "name": "smoke rows tagged separately",
+      "status": "INFO",
+      "detail": "12 rows under VERIFY-20260910-161117",
+      "remedy": "cleared by run_benchmark.py --reset"
+    }
+  ]
+}

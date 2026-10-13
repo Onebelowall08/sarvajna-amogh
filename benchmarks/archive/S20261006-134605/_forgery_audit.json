@@ -1,0 +1,7 @@
+{
+  "attempted": 834,
+  "correlated_via_forged_token": 834,
+  "attributed_to_victim": 834,
+  "attributed_to_attacker": 0,
+  "misattribution_rate": 1.0
+}

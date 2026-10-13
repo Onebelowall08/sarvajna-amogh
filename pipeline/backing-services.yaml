@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sarvajna-infra
+---
+# 1. NATS JetStream (Fast Path)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats
+  namespace: sarvajna-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+        - name: nats
+          image: nats:2.10-alpine
+          args: ["-js", "-m", "8222"]
+          resources:
+            limits:
+              memory: 2048Mi
+              cpu: 1000m
+          ports:
+            - containerPort: 4222
+              name: client
+            - containerPort: 8222
+              name: monitor
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: sarvajna-infra
+spec:
+  selector:
+    app: nats
+  ports:
+    - port: 4222
+      name: client
+    - port: 8222
+      name: monitor
+---
+# 2. PostgreSQL (Auth & durable execution state)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: sarvajna-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: sarvajna
+            - name: POSTGRES_PASSWORD
+              value: amogh_secure_pwd
+            - name: POSTGRES_DB
+              value: sarvajna_db
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          ports:
+            - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: sarvajna-infra
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+---
+# 3. ClickHouse (Cold Path SIEM & Latency Forensics)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+  namespace: sarvajna-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+    spec:
+      containers:
+        - name: clickhouse
+          # Pinned. `latest` resolves to whatever is current at pull time, so a
+          # reproducer would get a different engine from the one these results
+          # were collected on, and the schema uses DateTime64(6) columns whose
+          # behaviour under a future version is not guaranteed. The resolved
+          # image for every component is recorded in
+          # benchmarks/diag/environment.json under `images`.
+          image: clickhouse/clickhouse-server:26.8.2.7
+          resources:
+            limits:
+              memory: 3500Mi
+              cpu: 2000m
+          ports:
+            - containerPort: 8123
+              name: http
+            - containerPort: 9000
+              name: native
+          env:
+            - name: CLICKHOUSE_DB
+              value: sarvajna
+            - name: CLICKHOUSE_PASSWORD
+              value: amogh_secure_pwd
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: sarvajna-infra
+spec:
+  selector:
+    app: clickhouse
+  ports:
+    - port: 8123
+      name: http
+    - port: 9000
+      name: native

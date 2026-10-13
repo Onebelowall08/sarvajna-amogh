@@ -1,0 +1,27 @@
+{
+  "captured_at": "2026-10-06T12:20:04.152007+00:00",
+  "suite": "S20261006-134605",
+  "kubectl": "v1.35.0",
+  "k8s_server": "v1.35.5+k3s1",
+  "node_kernel": "6.15.0-1-cachyos",
+  "node_os": "PRETTY_NAME=\"K3s v1.35.5+k3s1\"",
+  "host_kernel": "6.15.0-1-cachyos",
+  "host_cpu": "CPU(s):                                  16;Model name:                              AMD Ryzen 7 7840HS w/ Radeon 780M Graphics;Thread(s) per core:                      2;Core(s) per socket:                      8;",
+  "host_mem_kb": "15526212",
+  "docker": "28.5.2",
+  "helm_releases": "[{\"name\":\"cilium\",\"namespace\":\"kube-system\",\"chart\":\"cilium-1.20.1\",\"app_version\":\"1.20.1\"},{\"name\":\"tetragon\",\"namespace\":\"kube-system\",\"chart\":\"tetragon-1.7.1\",\"app_version\":\"1.7.1\"}]",
+  "images": {
+    "clickhouse": "clickhouse/clickhouse-server:latest",
+    "nats": "nats:2.10-alpine",
+    "postgres": "postgres:16-alpine",
+    "vector": "timberio/vector:0.58.0-alpine",
+    "sarvajna-cep": "sarvajna-python-base:v2",
+    "soar-worker": "sarvajna-python-base:v2",
+    "target-app": "target-app:v2",
+    "tetragon": "quay.io/cilium/hubble-export-stdout:v1.1.1 quay.io/cilium/tetragon:v1.7.1",
+    "cilium": "quay.io/cilium/cilium:v1.20.1@sha256:ae9ea21f7427fe24bc6ea7247eb552157a1b0a431744045d3f641545ca71d11b"
+  },
+  "python": "Python 3.12.10",
+  "locust": "locust 2.46.5 from /home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/lib/python3.12/site-packages/locust (Python 3.12.10)",
+  "pip_freeze": "clickhouse-driver==0.2.11 locust==2.46.5 matplotlib==3.11.1 nats-py==2.15.0 numpy==2.5.3 pandas==3.0.5"
+}

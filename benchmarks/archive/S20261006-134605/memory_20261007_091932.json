@@ -1,0 +1,13 @@
+{
+  "measured_at": "2026-10-07T09:19:32Z",
+  "state": "idle",
+  "components": {
+    "tetragon": {"anon_mib": 1720.2, "file_mib": 886.7, "slab_mib": 53.0, "peak_mib": 3904.8, "current_mib": 2902.3},
+    "target-app": {"anon_mib": 53.1, "file_mib": 3.0, "slab_mib": 1.3, "peak_mib": 183.0, "current_mib": 61.8},
+    "vector": {"anon_mib": 51.8, "file_mib": 96.6, "slab_mib": 2.8, "peak_mib": 245.2, "current_mib": 159.5},
+    "sarvajna-cep": {"anon_mib": 26.7, "file_mib": 7.3, "slab_mib": 1.0, "peak_mib": 65.0, "current_mib": 36.8},
+    "soar-worker": {"anon_mib": 92.6, "file_mib": 6.1, "slab_mib": 2.3, "peak_mib": 129.3, "current_mib": 103.2},
+    "clickhouse": {"anon_mib": 310.4, "file_mib": 399.4, "slab_mib": 16.7, "peak_mib": 1088.3, "current_mib": 755.8},
+    "nats": {"anon_mib": 9.6, "file_mib": 17.3, "slab_mib": 0.5, "peak_mib": 31.4, "current_mib": 29.6}
+  }
+}

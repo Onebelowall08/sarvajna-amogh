@@ -1,0 +1,15 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "isolate-compromised-pod"
+  namespace: "default"
+spec:
+  endpointSelector:
+    matchLabels:
+      quarantine: "true"
+  egress:
+    - toEntities:
+        - none
+  ingress:
+    - fromEntities:
+        - none

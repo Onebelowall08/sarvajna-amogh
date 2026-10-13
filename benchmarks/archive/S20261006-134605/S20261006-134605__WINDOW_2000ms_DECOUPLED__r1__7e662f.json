@@ -1,0 +1,465 @@
+{
+  "run_id": "S20261006-134605__WINDOW_2000ms_DECOUPLED__r1__7e662f",
+  "cell": "WINDOW_2000ms_DECOUPLED",
+  "rep": 1,
+  "config": {
+    "name": "WINDOW_2000ms_DECOUPLED",
+    "join_mode": "deterministic",
+    "window_ms": 2000,
+    "pending_ms": 60000,
+    "adversarial": false,
+    "enforce": false,
+    "tier2": false,
+    "enrich": [
+      0,
+      1
+    ],
+    "users": 10,
+    "duration": "30s",
+    "quarantine": false
+  },
+  "endpoints": {
+    "clickhouse_pod": "10.42.0.134",
+    "nats_pod": "10.42.0.230",
+    "postgres_pod": "10.42.0.115",
+    "postgres_svc": "10.43.170.130",
+    "clickhouse_svc": "10.43.145.181",
+    "target_app_pod": "10.42.0.131"
+  },
+  "drain_s": 84,
+  "drain_trace": [
+    {
+      "t": 0,
+      "correlated": 1659
+    },
+    {
+      "t": 3,
+      "correlated": 1659
+    },
+    {
+      "t": 6,
+      "correlated": 1659
+    },
+    {
+      "t": 9,
+      "correlated": 1659
+    },
+    {
+      "t": 12,
+      "correlated": 1659
+    },
+    {
+      "t": 15,
+      "correlated": 1659
+    },
+    {
+      "t": 18,
+      "correlated": 1659
+    },
+    {
+      "t": 21,
+      "correlated": 1659
+    },
+    {
+      "t": 24,
+      "correlated": 1659
+    },
+    {
+      "t": 27,
+      "correlated": 1659
+    },
+    {
+      "t": 30,
+      "correlated": 1659
+    },
+    {
+      "t": 33,
+      "correlated": 1659
+    },
+    {
+      "t": 36,
+      "correlated": 1659
+    },
+    {
+      "t": 39,
+      "correlated": 1659
+    },
+    {
+      "t": 42,
+      "correlated": 1659
+    },
+    {
+      "t": 45,
+      "correlated": 1659
+    },
+    {
+      "t": 48,
+      "correlated": 1659
+    },
+    {
+      "t": 51,
+      "correlated": 1659
+    },
+    {
+      "t": 54,
+      "correlated": 1659
+    },
+    {
+      "t": 57,
+      "correlated": 1659
+    },
+    {
+      "t": 60,
+      "correlated": 1659
+    },
+    {
+      "t": 63,
+      "correlated": 1659
+    },
+    {
+      "t": 66,
+      "correlated": 1659
+    },
+    {
+      "t": 69,
+      "correlated": 1659
+    },
+    {
+      "t": 72,
+      "correlated": 1659
+    },
+    {
+      "t": 75,
+      "correlated": 1659
+    },
+    {
+      "t": 78,
+      "correlated": 1659
+    },
+    {
+      "t": 81,
+      "correlated": 1659
+    },
+    {
+      "t": 84,
+      "correlated": 1659
+    }
+  ],
+  "captured_at": "2026-10-06T09:48:09.928028+00:00",
+  "locust_wall_s": 30.2,
+  "resources": {
+    "target-app": {
+      "cpu_seconds": 11.692,
+      "mean_millicores": 387.1,
+      "mem_peak_mib": 154.1
+    },
+    "vector": {
+      "cpu_seconds": 2.88,
+      "mean_millicores": 95.4,
+      "mem_peak_mib": 376.4
+    },
+    "sarvajna-cep": {
+      "cpu_seconds": 4.297,
+      "mean_millicores": 142.3,
+      "mem_peak_mib": 43.7
+    },
+    "soar-worker": {
+      "cpu_seconds": 1.764,
+      "mean_millicores": 58.4,
+      "mem_peak_mib": 114.9
+    },
+    "clickhouse": {
+      "cpu_seconds": 2.452,
+      "mean_millicores": 81.2,
+      "mem_peak_mib": 1965.6
+    },
+    "nats": {
+      "cpu_seconds": 1.575,
+      "mean_millicores": 52.2,
+      "mem_peak_mib": 228.7
+    },
+    "tetragon": {
+      "cpu_seconds": 30.866,
+      "mean_millicores": 1022.0,
+      "mem_peak_mib": 5850.8
+    }
+  },
+  "cep_backlog": [
+    {
+      "pending": 0,
+      "held": 0
+    },
+    {
+      "pending": 17,
+      "held": 315
+    },
+    {
+      "pending": 17,
+      "held": 315
+    },
+    {
+      "pending": 17,
+      "held": 315
+    },
+    {
+      "pending": 8,
+      "held": 412
+    },
+    {
+      "pending": 8,
+      "held": 412
+    },
+    {
+      "pending": 10,
+      "held": 443
+    },
+    {
+      "pending": 10,
+      "held": 443
+    },
+    {
+      "pending": 7,
+      "held": 460
+    },
+    {
+      "pending": 7,
+      "held": 460
+    },
+    {
+      "pending": 7,
+      "held": 460
+    },
+    {
+      "pending": 1,
+      "held": 426
+    },
+    {
+      "pending": 1,
+      "held": 426
+    },
+    {
+      "pending": 0,
+      "held": 461
+    },
+    {
+      "pending": 0,
+      "held": 461
+    }
+  ],
+  "cep_backlog_peak": 17,
+  "t_cell_start": "2026-10-06T09:46:11.614733+00:00",
+  "t_cell_end": "2026-10-06T09:48:08.405175+00:00",
+  "matched_on": {
+    "no_match": 6736,
+    "no_label": 4,
+    "trace_id": 562,
+    "file_path": 527,
+    "dest_endpoint": 570
+  },
+  "alert_type": {
+    "BOLA_AUTHORIZATION_BYPASS": 527,
+    "RCE_COMMAND_INJECTION": 562,
+    "SSRF_UNAUTHORIZED_PROBE": 570
+  },
+  "detections": {
+    "total": 8399,
+    "correlated": 1659,
+    "with_attack_id": 1659,
+    "with_kernel_true": 8399,
+    "with_app_emit": 1659
+  },
+  "ground_truth": {
+    "authorized_access": 1080,
+    "allowed_fetch": 833,
+    "BOLA_AUTHORIZATION_BYPASS": 527,
+    "RCE_COMMAND_INJECTION": 562,
+    "SSRF_UNAUTHORIZED_PROBE": 570,
+    "none": 1608
+  },
+  "delivery": {
+    "issued": 5180,
+    "delivered": 5180
+  },
+  "blocked_requests": 0,
+  "revocations": [
+    1659,
+    1659
+  ],
+  "actions": {
+    "none_uncorrelated": 6740,
+    "revoke_session": 1659
+  },
+  "rce_tp": {
+    "tp": 562,
+    "attempts": 562
+  },
+  "false_positives": {
+    "fp": 0,
+    "forgery_recon": 0
+  },
+  "reassigned": 0,
+  "orphaned": [
+    0,
+    1659
+  ],
+  "collection_delay_ms": {
+    "application/app_ssrf_denial": {
+      "n": 570,
+      "p50": 3.0,
+      "p95": 16.0,
+      "p99": 112.0
+    },
+    "kernel/tcp_connect": {
+      "n": 1403,
+      "p50": 3.0,
+      "p95": 14.0,
+      "p99": 26.0
+    },
+    "application/app_authz_denial": {
+      "n": 527,
+      "p50": 3.0,
+      "p95": 15.0,
+      "p99": 180.0
+    },
+    "application/app_log": {
+      "n": 562,
+      "p50": 3.0,
+      "p95": 17.0,
+      "p99": 383.0
+    },
+    "application/app_file_access": {
+      "n": 2688,
+      "p50": 3.0,
+      "p95": 15.0,
+      "p99": 199.0
+    },
+    "kernel/execve": {
+      "n": 1698,
+      "p50": 533.0,
+      "p95": 958.0,
+      "p99": 992.0
+    },
+    "application/app_fetch_allowed": {
+      "n": 833,
+      "p50": 3.0,
+      "p95": 16.0,
+      "p99": 154.0
+    },
+    "kernel/file_open": {
+      "n": 6430,
+      "p50": 3.0,
+      "p95": 14.0,
+      "p99": 27.0
+    }
+  },
+  "stale_telemetry": {
+    "collected_in_window": 14711,
+    "event_before_window": 0
+  },
+  "stage_latency_ms": {
+    "BOLA_AUTHORIZATION_BYPASS": {
+      "n": 527,
+      "export_p50": 3.0,
+      "export_p95": 14.0,
+      "transport_p50": 0.0,
+      "transport_p95": 1.0,
+      "correlate_p50": 2.0,
+      "correlate_p95": 101.0,
+      "act_p50": 0.0,
+      "act_p95": 2.0,
+      "pipeline_p50": 2.0,
+      "pipeline_p95": 106.0,
+      "pipeline_p99": 1316.0,
+      "e2e_p50": 6.0,
+      "e2e_p95": 21.0
+    },
+    "RCE_COMMAND_INJECTION": {
+      "n": 562,
+      "export_p50": 536.0,
+      "export_p95": 957.0,
+      "transport_p50": 1.0,
+      "transport_p95": 1.0,
+      "correlate_p50": 5.0,
+      "correlate_p95": 11.0,
+      "act_p50": 0.0,
+      "act_p95": 1.0,
+      "pipeline_p50": 6.0,
+      "pipeline_p95": 13.0,
+      "pipeline_p99": 21.0,
+      "e2e_p50": 548.0,
+      "e2e_p95": 965.0
+    },
+    "SSRF_UNAUTHORIZED_PROBE": {
+      "n": 570,
+      "export_p50": 3.0,
+      "export_p95": 14.0,
+      "transport_p50": 0.0,
+      "transport_p95": 1.0,
+      "correlate_p50": 2.0,
+      "correlate_p95": 11.0,
+      "act_p50": 0.0,
+      "act_p95": 2.0,
+      "pipeline_p50": 2.0,
+      "pipeline_p95": 12.0,
+      "pipeline_p99": 121.0,
+      "e2e_p50": 7.0,
+      "e2e_p95": 22.0
+    }
+  },
+  "cross_request_pairing": {
+    "trace_id": {
+      "n": 562,
+      "crossed": 0,
+      "pct": 0.0
+    },
+    "file_path": {
+      "n": 527,
+      "crossed": 20,
+      "pct": 3.8
+    },
+    "dest_endpoint": {
+      "n": 570,
+      "crossed": 0,
+      "pct": 0.0
+    }
+  },
+  "cep_tail": [
+    "[CEP] processed=14711 pending=0 held=0 {'nomatch_no_label': 4, 'dropped_runtime_binary': 1132, 'match_file_path': 527, 'match_dest_endpoint': 570, 'match_trace_id': 562, 'nomatch_no_match': 6736}"
+  ],
+  "cep_stats": {
+    "nomatch_no_label": 4,
+    "dropped_runtime_binary": 1132,
+    "match_file_path": 527,
+    "match_dest_endpoint": 570,
+    "match_trace_id": 562,
+    "nomatch_no_match": 6736,
+    "processed": 14711,
+    "pending": 0,
+    "held": 0
+  },
+  "cep_reconciliation": {
+    "processed": 14711,
+    "outcomes": 8399,
+    "dropped_or_ignored": 1132,
+    "app_records": 5180,
+    "residual": 0,
+    "counters_stable": true,
+    "held_at_end": 0
+  },
+  "app_health": {
+    "ok": true,
+    "pod_name": "target-app-8677b5df4f-2nnkc",
+    "revocation": {
+      "enforce": true,
+      "revoked_count": 0,
+      "last_refresh_ms_ago": 316,
+      "refreshes": 3660,
+      "last_error": ""
+    },
+    "confidential_file_count": 512,
+    "preview_allowed_endpoints": [
+      "10.42.0.230:4222"
+    ]
+  },
+  "clock_drift_s": 0.8155920505523682
+}

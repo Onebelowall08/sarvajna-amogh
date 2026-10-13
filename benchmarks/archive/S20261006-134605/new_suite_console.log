@@ -1,0 +1,1567 @@
+[13:46:05] [PREFLIGHT] ==========================================================
+
+[1m[0] Local tooling[0m
+  [32mok  [0m kubectl on PATH                                /usr/bin/kubectl
+  [32mok  [0m docker on PATH                                 /usr/bin/docker
+  [32mok  [0m helm on PATH                                   /usr/local/bin/helm
+  [32mok  [0m jq on PATH                                     /usr/bin/jq
+  [32mok  [0m locust on PATH                                 /home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust
+  [32mok  [0m python module clickhouse_driver                importable
+  [32mok  [0m python module nats                             importable
+  [32mok  [0m python module pandas                           importable
+  [32mok  [0m python module numpy                            importable
+  [32mok  [0m python module matplotlib                       importable
+
+[1m[1] Cluster and workloads[0m
+  [32mok  [0m node container running                         k3d-sarvajna-cluster-server-0
+  [32mok  [0m apiserver readyz                               ok
+  [32mok  [0m sarvajna-infra/clickhouse                      1/1 Running restarts=0 age=7h24m
+  [32mok  [0m sarvajna-infra/nats                            1/1 Running restarts=0 age=7h24m
+  [32mok  [0m sarvajna-infra/postgres                        1/1 Running restarts=0 age=7h24m
+  [32mok  [0m sarvajna-infra/sarvajna-cep                    1/1 Running restarts=0 age=11m
+  [32mok  [0m sarvajna-infra/soar-worker                     1/1 Running restarts=0 age=9m59s
+  [32mok  [0m sarvajna-infra/vector                          1/1 Running restarts=0 age=3h12m
+  [32mok  [0m default/target-app                             1/1 Running restarts=0 age=22m
+  [32mok  [0m kube-system/tetragon                           1/1 Running restarts=0 age=7h24m
+  [33mwarn[0m kube-system/cilium-q                           1/1 Running restarts=10 age=28d
+       [33mremedy:[0m kubectl logs -n kube-system cilium-qppln --previous
+  [32mok  [0m exactly one correlator                         1 pod(s)
+
+[1m[2] Network paths[0m
+  [32mok  [0m localhost:9000 (clickhouse)                    reachable
+  [32mok  [0m localhost:4222 (nats)                          reachable
+  [32mok  [0m localhost:3501 (target-app)                    reachable
+  [32mok  [0m endpoint resolution                            clickhouse_pod=10.42.0.134 nats_pod=10.42.0.230 postgres_pod=10.42.0.115 postgres_svc=10.43.170.130 clickhouse_svc=10.43.145.181 target_app_pod=10.42.0.141
+
+[1m[3] ClickHouse schema and capacity[0m
+  [32mok  [0m clickhouse responding                          1
+  [32mok  [0m table detections                               32 columns
+  [32mok  [0m table ground_truth                             12 columns
+  [32mok  [0m table revocations                              10 columns
+  [32mok  [0m table raw_telemetry                            12 columns
+  [32mok  [0m detections.t_kernel precision                  DateTime64(6)
+  [32mok  [0m detections.t_correlate precision               DateTime64(6)
+  [32mok  [0m detections.t_action precision                  DateTime64(6)
+  [32mok  [0m detections.window_ms range                     UInt32
+       existing row counts                            raw_telemetry=18594  ground_truth=6527  revocations=1816  detections=10706
+  [32mok  [0m node disk headroom                             100G free
+
+[1m[4] Revocation store[0m
+  [32mok  [0m revocations table                              revocations
+  [32mok  [0m revocations currently in force                 0 row(s)
+
+[1m[5] NATS JetStream[0m
+  [32mok  [0m stream TELEMETRY                               4735 msgs, 1 consumer(s)
+  [32mok  [0m stream ALERTS                                  2732 msgs, 1 consumer(s)
+
+[1m[6] Kernel telemetry[0m
+  [32mok  [0m tetragon enable-process-environment-variables  set
+  [32mok  [0m tetragon filter-environment-variables          set
+  [32mok  [0m tetragon enable-cri                            set
+  [32mok  [0m tetragon cri-endpoint                          set
+  [32mok  [0m tetragon enable-cgidmap                        set
+       enrichment retry ceiling                       retries=0 delay=1s -> up to 0s added exec-path latency
+  [32mok  [0m policy sarvajna-file-open                      attached
+  [32mok  [0m policy sarvajna-tcp-connect                    attached
+  [32mok  [0m tetragon clock vs node                         +1.5s (tolerance 60s)
+
+[1m[7] Enforcement capability[0m
+  [32mok  [0m quarantine policy present                      isolate-compromised-pod   28d   True
+  [32mok  [0m cilium agent                                   cilium-qppln
+  [32mok  [0m policy enforcement mode                        default
+  [32mok  [0m target endpoint enforcement                    2668 Disabled Disabled 15777 k8s:app=target-app 10.42.0.141 ready
+
+[1m[8] Application and context bridge[0m
+  [32mok  [0m health endpoint                                target-app-54f6d4586b-fczn5
+  [32mok  [0m revocation enforcement enabled                 enforce=True revoked=0 refreshes=2648
+  [32mok  [0m revocation store reachable                     last refresh 398ms ago
+  [32mok  [0m outbound allowlist                             10.42.0.230:4222
+  [32mok  [0m restricted objects present                     513 of 512
+  [33mwarn[0m bridge canary                                  not in current log window
+       [33mremedy:[0m it fires only at startup; kubectl rollout restart -n default deployment/target-app to re-check
+
+[1m[9] Pipeline configuration[0m
+  [32mok  [0m vector: tetragon_direct                        present
+  [32mok  [0m vector: app_logs                               present
+  [32mok  [0m vector: glob_minimum_cooldown_ms               present
+  [32mok  [0m vector: read_from: end                         present
+  [32mok  [0m vector: kernel_time                            present
+  [32mok  [0m vector: collector_time                         present
+  [32mok  [0m vector: .pod_name == "unknown"                 present
+  [32mok  [0m collector checkpoints survive restart          hostPath
+       application log rotation state                 1 file(s) in the log directory
+  [32mok  [0m no host telemetry collected                    0 unresolved kernel events in the last 30 min
+  [32mok  [0m sarvajna-cep JOIN_MODE                         JOIN_MODE=spatial
+  [32mok  [0m sarvajna-cep CORRELATION_WINDOW_MS             CORRELATION_WINDOW_MS=10000
+  [32mok  [0m sarvajna-cep PENDING_EXECVE_HORIZON_MS         PENDING_EXECVE_HORIZON_MS=10000
+  [32mok  [0m sarvajna-cep IGNORE_DADDRS                     IGNORE_DADDRS=10.42.0.115,10.43.170.130
+  [32mok  [0m soar-worker ENRICH_RETRIES                     ENRICH_RETRIES=0
+  [32mok  [0m soar-worker ENFORCE_REVOCATION                 ENFORCE_REVOCATION=false
+  [32mok  [0m soar-worker TIER2_ENABLED                      TIER2_ENABLED=false
+  [32mok  [0m soar-worker ACT_ON_UNCORRELATED                ACT_ON_UNCORRELATED=false
+  [32mok  [0m target not quarantined                         clean
+  [32mok  [0m stream retention bounded                       TELEMETRY: {'msgs': 3963, 'max_age_s': 600.0}  ALERTS: {'msgs': 2651, 'max_age_s': 600.0}
+[13:46:19] [ENV] manifest written: node kernel 6.15.0-1-cachyos, 9 component images
+[13:46:19] [APP] Configuring application (once for the whole suite)...
+[13:46:24] [CANARY] PASS expected=canary-1791274581566 observed=canary-1791274581566
+[13:46:24] [APP] Creating 512 objects...
+[13:46:24] [APP] Ready. objects=513 allowlist=['10.42.0.230:4222']
+[13:46:25] [SETUP] Restarting Tetragon to reset its clock baseline...
+[13:46:32] [SETUP] TracingPolicies attached after 2s.
+[13:46:44] [CLOCK] Tetragon vs node: +1.6s (tolerance 60s)
+[13:46:46] [SETUP] TracingPolicies attached after 0s.
+[13:46:57] [CLOCK] Tetragon vs node: +0.5s (tolerance 60s)
+[13:46:57] [SETUP] Warming port-forward after application restart...
+[13:46:59] [SETUP] Port-forward re-established and healthy on localhost:3501.
+
+[1m[7] Quarantine enforcement (destructive, self-restoring)[0m
+       containment latency (apply)                    16.3s
+  [32mok  [0m pod-network traffic severed                    ingress=BLOCKED egress=BLOCKED still_enforced=True
+       port-forward survives containment              OK
+  [32mok  [0m recovery after reset                           ingress=OK egress=OK  [BENCHMARK] Quarantine lifted on 1 pod(s); datapath converged after 20s.
+
+[1m[11] Revocation takes effect[0m
+[13:48:27] [REVOCATION] [CEP] outgoing correlator gone after 26s; exactly one running
+  [32mok  [0m principal serves before revocation             HTTP 200
+  [32mok  [0m principal refused after revocation             HTTP 403 after 0.53s
+       revocation effect latency                      0.53s
+
+[1m======================================================================[0m
+  [32mPASS 79[0m   [33mWARN 2[0m   [31mFAIL 0[0m
+
+  [33mNON-BLOCKING:[0m
+    - [1] kube-system/cilium-q: 1/1 Running restarts=10 age=28d
+    - [8] bridge canary: not in current log window
+
+  [1mVERDICT: READY (with warnings)[0m
+[1m======================================================================[0m
+  report: benchmarks/diag/preflight.json
+
+[13:49:18] [PREFLIGHT] ==========================================================
+[13:49:19] [RESET] Truncated sarvajna.detections
+[13:49:19] [RESET] Truncated sarvajna.ground_truth
+[13:49:19] [RESET] Truncated sarvajna.revocations
+[13:49:19] [RESET] Truncated sarvajna.raw_telemetry
+[13:49:19] [INIT] Suite = S20261006-134605
+
+##########################################################################
+#  SUITE S20261006-134605   20 cells
+##########################################################################
+
+==========================================================================
+  WARMUP   rep 0   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WARMUP__r0__003603
+==========================================================================
+[13:49:19] [SETTLE] 75s for the previous cell to drain fully...
+[13:51:06] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[13:52:03] [LOCUST] Aggregated                                                                              4      5      7     10     30     49     73     85    170    1
+[13:52:03] [LOCUST] wall=15.2s -> benchmarks/logs/S20261006-134605__WARMUP__r0__003603_locust.log
+[13:52:03] [RESOURCE] clickhouse=67.6m/1965.6Mi  nats=43.8m/228.7Mi  sarvajna-cep=110.6m/36.6Mi  soar-worker=31.0m/98.4Mi  target-app=439.2m/149.3Mi  tetragon=977.2m/5128.5Mi  vector=90.5m/310.5Mi
+[13:52:03] [BACKLOG] correlator queue peaked at 6
+[13:52:03] [DRAIN] 0s: 749 correlated rows...
+[13:52:18] [DRAIN] 15s: 758 correlated rows...
+[13:52:33] [DRAIN] 30s: 758 correlated rows...
+[13:52:48] [DRAIN] 45s: 758 correlated rows...
+[13:53:03] [DRAIN] 60s: 758 correlated rows...
+[13:53:27] [DRAIN] Quiescent at 84s with 758 correlated rows.
+[13:53:27] [GT] Ingested 2450 rows.
+[13:53:40] [CLOCK] Tetragon vs node: +0.9s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=3985 correlated=758 with_attack_id=758 kernel_true=3985 app_emit=758
+  matched_on: no_match=3223  dest_endpoint=262  file_path=260  trace_id=236  no_label=4
+  actions:    none_uncorrelated=3227  revoke_session=758
+  revocations=(758, 758)  blocked_requests=0  delivery={'issued': 2450, 'delivered': 2450}
+  cep: processed=6915 outcomes=3985 dropped/ignored=480 app=2450 residual=0 held=0 stable=True
+  telemetry: 6915 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=2.0ms p95=20.0ms  RCE pipeline_p50=7.0ms p95=16.0ms  SSRF pipeline_p50=2.0ms p95=12.0ms
+  -------------------------------------------------------
+
+[13:53:40] [CELL] PASS WARMUP__r0   execution recall 236/236
+
+==========================================================================
+  B3_DeterministicBridge   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__B3_DeterministicBridge__r1__3a5bff
+==========================================================================
+[13:53:40] [SETTLE] 75s for the previous cell to drain fully...
+[13:55:27] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[13:56:38] [LOCUST] Aggregated                                                                              3      4      5      5     10     33     61     74    100    1
+[13:56:38] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__B3_DeterministicBridge__r1__3a5bff_locust.log
+[13:56:38] [RESOURCE] clickhouse=84.1m/1965.6Mi  nats=50.2m/228.7Mi  sarvajna-cep=141.9m/50.8Mi  soar-worker=46.9m/98.8Mi  target-app=391.9m/149.3Mi  tetragon=1002.4m/5227.7Mi  vector=95.6m/327.9Mi
+[13:56:38] [BACKLOG] correlator queue peaked at 19
+[13:56:38] [DRAIN] 0s: 1639 correlated rows...
+[13:56:53] [DRAIN] 15s: 1639 correlated rows...
+[13:57:08] [DRAIN] 30s: 1639 correlated rows...
+[13:57:23] [DRAIN] 45s: 1639 correlated rows...
+[13:57:38] [DRAIN] 60s: 1639 correlated rows...
+[13:58:02] [DRAIN] Quiescent at 84s with 1639 correlated rows.
+[13:58:04] [GT] Ingested 5191 rows.
+[13:58:16] [CLOCK] Tetragon vs node: +0.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8473 correlated=1639 with_attack_id=1639 kernel_true=8473 app_emit=1639
+  matched_on: no_match=6830  dest_endpoint=570  file_path=543  trace_id=526  no_label=4
+  actions:    none_uncorrelated=6834  revoke_session=1639
+  revocations=(1639, 1639)  blocked_requests=0  delivery={'issued': 5191, 'delivered': 5191}
+  cep: processed=14724 outcomes=8473 dropped/ignored=1060 app=5191 residual=0 held=0 stable=True
+  telemetry: 14724 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=7162.0ms  RCE pipeline_p50=6.0ms p95=10.0ms  SSRF pipeline_p50=2.0ms p95=9.0ms
+  -------------------------------------------------------
+
+[13:58:16] [CELL] PASS B3_DeterministicBridge__r1   execution recall 526/526
+
+==========================================================================
+  B4_AdversarialRobustness   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=True enforce=False tier2=False
+  S20261006-134605__B4_AdversarialRobustness__r1__f8b521
+==========================================================================
+[13:58:17] [SETTLE] 75s for the previous cell to drain fully...
+[14:00:06] [CEP] [CEP] outgoing correlator gone after 26s; exactly one running
+[14:01:17] [LOCUST] Aggregated                                                                              4      5      6      6     18     42     75     96    140    1
+[14:01:17] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__B4_AdversarialRobustness__r1__f8b521_locust.log
+[14:01:17] [RESOURCE] clickhouse=87.3m/1965.6Mi  nats=50.7m/228.7Mi  sarvajna-cep=143.2m/40.6Mi  soar-worker=45.5m/98.7Mi  target-app=437.7m/152.0Mi  tetragon=1072.8m/5262.5Mi  vector=98.7m/328.0Mi
+[14:01:17] [BACKLOG] correlator queue peaked at 5
+[14:01:17] [DRAIN] 0s: 1763 correlated rows...
+[14:01:32] [DRAIN] 15s: 1763 correlated rows...
+[14:01:47] [DRAIN] 30s: 1763 correlated rows...
+[14:02:02] [DRAIN] 45s: 1763 correlated rows...
+[14:02:17] [DRAIN] 60s: 1763 correlated rows...
+[14:02:41] [DRAIN] Quiescent at 84s with 1763 correlated rows.
+[14:02:43] [GT] Ingested 5419 rows.
+[14:02:55] [CLOCK] Tetragon vs node: +0.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8516 correlated=1763 with_attack_id=1763 kernel_true=8516 app_emit=1763
+  matched_on: no_match=6344  trace_id=867  file_path=463  dest_endpoint=433  no_label=409
+  actions:    none_uncorrelated=6753  revoke_session_already_in_force=420  revoke_session=1343
+  revocations=(1343, 1343)  blocked_requests=0  delivery={'issued': 5419, 'delivered': 5419}
+  cep: processed=16892 outcomes=8516 dropped/ignored=2957 app=5419 residual=0 held=0 stable=True
+  telemetry: 16892 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=4126.0ms  RCE pipeline_p50=12.0ms p95=20.0ms  SSRF pipeline_p50=2.0ms p95=10.0ms
+  -------------------------------------------------------
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CELL FAILED: B4_AdversarialRobustness__r1
+!  run_id: S20261006-134605__B4_AdversarialRobustness__r1__f8b521
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  - 440 false positive(s) under deterministic mode; authorised traffic was attributed
+!
+!  2 cell(s) collected and verified before this one. Their data is kept.
+!  Diagnostics: benchmarks/diag/S20261006-134605__B4_AdversarialRobustness__r1__f8b521.json
+!
+!  Fix the cause, then continue from this cell:
+!      python benchmarks/run_benchmark.py --resume S20261006-134605
+!
+!  The failed cell's rows are deleted and verified gone before it is
+!  collected again, so nothing is counted twice.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[14:47:11] [RESUME] continuing suite S20261006-134605
+[14:47:11] [PREFLIGHT] ==========================================================
+
+[1m[0] Local tooling[0m
+  [32mok  [0m kubectl on PATH                                /usr/bin/kubectl
+  [32mok  [0m docker on PATH                                 /usr/bin/docker
+  [32mok  [0m helm on PATH                                   /usr/local/bin/helm
+  [32mok  [0m jq on PATH                                     /usr/bin/jq
+  [32mok  [0m locust on PATH                                 /home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust
+  [32mok  [0m python module clickhouse_driver                importable
+  [32mok  [0m python module nats                             importable
+  [32mok  [0m python module pandas                           importable
+  [32mok  [0m python module numpy                            importable
+  [32mok  [0m python module matplotlib                       importable
+
+[1m[1] Cluster and workloads[0m
+  [32mok  [0m node container running                         k3d-sarvajna-cluster-server-0
+  [32mok  [0m apiserver readyz                               ok
+  [32mok  [0m sarvajna-infra/clickhouse                      1/1 Running restarts=0 age=8h
+  [32mok  [0m sarvajna-infra/nats                            1/1 Running restarts=0 age=8h
+  [32mok  [0m sarvajna-infra/postgres                        1/1 Running restarts=0 age=8h
+  [32mok  [0m sarvajna-infra/sarvajna-cep                    1/1 Running restarts=0 age=47m
+  [32mok  [0m sarvajna-infra/soar-worker                     1/1 Running restarts=0 age=46m
+  [32mok  [0m sarvajna-infra/vector                          1/1 Running restarts=0 age=4h13m
+  [32mok  [0m default/target-app                             1/1 Running restarts=0 age=60m
+  [32mok  [0m kube-system/tetragon                           2/2 Running restarts=0 age=60m
+  [33mwarn[0m kube-system/cilium-q                           1/1 Running restarts=10 age=28d
+       [33mremedy:[0m kubectl logs -n kube-system cilium-qppln --previous
+  [32mok  [0m exactly one correlator                         1 pod(s)
+
+[1m[2] Network paths[0m
+  [32mok  [0m localhost:9000 (clickhouse)                    reachable
+  [32mok  [0m localhost:4222 (nats)                          reachable
+  [32mok  [0m localhost:3501 (target-app)                    reachable
+  [32mok  [0m endpoint resolution                            clickhouse_pod=10.42.0.134 nats_pod=10.42.0.230 postgres_pod=10.42.0.115 postgres_svc=10.43.170.130 clickhouse_svc=10.43.145.181 target_app_pod=10.42.0.31
+
+[1m[3] ClickHouse schema and capacity[0m
+  [32mok  [0m clickhouse responding                          1
+  [32mok  [0m table detections                               32 columns
+  [32mok  [0m table ground_truth                             12 columns
+  [32mok  [0m table revocations                              10 columns
+  [32mok  [0m table raw_telemetry                            12 columns
+  [32mok  [0m detections.t_kernel precision                  DateTime64(6)
+  [32mok  [0m detections.t_correlate precision               DateTime64(6)
+  [32mok  [0m detections.t_action precision                  DateTime64(6)
+  [32mok  [0m detections.window_ms range                     UInt32
+       existing row counts                            raw_telemetry=38551  ground_truth=13060  revocations=3740  detections=20986
+  [32mok  [0m node disk headroom                             100G free
+
+[1m[4] Revocation store[0m
+  [32mok  [0m revocations table                              revocations
+  [32mok  [0m revocations currently in force                 0 row(s)
+
+[1m[5] NATS JetStream[0m
+  [32mok  [0m stream TELEMETRY                               0 msgs, 1 consumer(s)
+  [32mok  [0m stream ALERTS                                  0 msgs, 1 consumer(s)
+
+[1m[6] Kernel telemetry[0m
+  [32mok  [0m tetragon enable-process-environment-variables  set
+  [32mok  [0m tetragon filter-environment-variables          set
+  [32mok  [0m tetragon enable-cri                            set
+  [32mok  [0m tetragon cri-endpoint                          set
+  [32mok  [0m tetragon enable-cgidmap                        set
+       enrichment retry ceiling                       retries=0 delay=1s -> up to 0s added exec-path latency
+  [32mok  [0m policy sarvajna-file-open                      attached
+  [32mok  [0m policy sarvajna-tcp-connect                    attached
+  [32mok  [0m tetragon clock vs node                         +0.6s (tolerance 60s)
+
+[1m[7] Enforcement capability[0m
+  [32mok  [0m quarantine policy present                      isolate-compromised-pod   28d   True
+  [32mok  [0m cilium agent                                   cilium-qppln
+  [32mok  [0m policy enforcement mode                        default
+  [32mok  [0m target endpoint enforcement                    223 Disabled Disabled 15777 k8s:app=target-app 10.42.0.31 ready
+
+[1m[8] Application and context bridge[0m
+  [32mok  [0m health endpoint                                target-app-5bcc5df7b-cxg9p
+  [32mok  [0m revocation enforcement enabled                 enforce=True revoked=0 refreshes=7248
+  [32mok  [0m revocation store reachable                     last refresh 206ms ago
+  [32mok  [0m outbound allowlist                             10.42.0.230:4222
+  [32mok  [0m restricted objects present                     513 of 512
+  [33mwarn[0m bridge canary                                  not in current log window
+       [33mremedy:[0m it fires only at startup; kubectl rollout restart -n default deployment/target-app to re-check
+
+[1m[9] Pipeline configuration[0m
+  [32mok  [0m vector: tetragon_direct                        present
+  [32mok  [0m vector: app_logs                               present
+  [32mok  [0m vector: glob_minimum_cooldown_ms               present
+  [32mok  [0m vector: read_from: end                         present
+  [32mok  [0m vector: kernel_time                            present
+  [32mok  [0m vector: collector_time                         present
+  [32mok  [0m vector: .pod_name == "unknown"                 present
+  [32mok  [0m collector checkpoints survive restart          hostPath
+       application log rotation state                 1 file(s) in the log directory
+  [32mok  [0m no host telemetry collected                    0 unresolved kernel events in the last 30 min
+  [32mok  [0m sarvajna-cep JOIN_MODE                         JOIN_MODE=deterministic
+  [32mok  [0m sarvajna-cep CORRELATION_WINDOW_MS             CORRELATION_WINDOW_MS=10000
+  [32mok  [0m sarvajna-cep PENDING_EXECVE_HORIZON_MS         PENDING_EXECVE_HORIZON_MS=10000
+  [32mok  [0m sarvajna-cep IGNORE_DADDRS                     IGNORE_DADDRS=10.42.0.115,10.43.170.130
+  [32mok  [0m soar-worker ENRICH_RETRIES                     ENRICH_RETRIES=0
+  [32mok  [0m soar-worker ENFORCE_REVOCATION                 ENFORCE_REVOCATION=false
+  [32mok  [0m soar-worker TIER2_ENABLED                      TIER2_ENABLED=false
+  [32mok  [0m soar-worker ACT_ON_UNCORRELATED                ACT_ON_UNCORRELATED=false
+  [32mok  [0m target not quarantined                         clean
+  [32mok  [0m stream retention bounded                       TELEMETRY: {'msgs': 6, 'max_age_s': 600.0}  ALERTS: {'msgs': 5, 'max_age_s': 600.0}
+[14:47:23] [ENV] manifest written: node kernel 6.15.0-1-cachyos, 9 component images
+[14:47:23] [APP] Configuring application (once for the whole suite)...
+[14:47:29] [CANARY] PASS expected=canary-1791278246283 observed=canary-1791278246283
+[14:47:29] [APP] Creating 512 objects...
+[14:47:30] [APP] Ready. objects=513 allowlist=['10.42.0.230:4222']
+[14:47:30] [SETUP] Restarting Tetragon to reset its clock baseline...
+[14:47:38] [SETUP] TracingPolicies attached after 2s.
+[14:47:49] [CLOCK] Tetragon vs node: +1.6s (tolerance 60s)
+[14:47:51] [SETUP] TracingPolicies attached after 0s.
+[14:48:02] [CLOCK] Tetragon vs node: +0.9s (tolerance 60s)
+[14:48:02] [SETUP] Warming port-forward after application restart...
+[14:48:04] [SETUP] Port-forward re-established and healthy on localhost:3501.
+
+[1m[7] Quarantine enforcement (destructive, self-restoring)[0m
+       containment latency (apply)                    30.6s
+  [32mok  [0m pod-network traffic severed                    ingress=BLOCKED egress=BLOCKED still_enforced=True
+       port-forward survives containment              OK
+  [32mok  [0m recovery after reset                           ingress=OK egress=OK  [BENCHMARK] Quarantine lifted on 1 pod(s); datapath converged after 8s.
+
+[1m[11] Revocation takes effect[0m
+[14:49:34] [REVOCATION] [CEP] outgoing correlator gone after 25s; exactly one running
+  [32mok  [0m principal serves before revocation             HTTP 200
+  [32mok  [0m principal refused after revocation             HTTP 403 after 0.27s
+       revocation effect latency                      0.27s
+
+[1m======================================================================[0m
+  [32mPASS 79[0m   [33mWARN 2[0m   [31mFAIL 0[0m
+
+  [33mNON-BLOCKING:[0m
+    - [1] kube-system/cilium-q: 1/1 Running restarts=10 age=28d
+    - [8] bridge canary: not in current log window
+
+  [1mVERDICT: READY (with warnings)[0m
+[1m======================================================================[0m
+  report: benchmarks/diag/preflight.json
+
+[14:50:27] [PREFLIGHT] ==========================================================
+[14:50:27] [RESUME] no orphaned rows from interrupted attempts
+
+##########################################################################
+#  SUITE S20261006-134605   20 cells
+##########################################################################
+[14:50:27] [SKIP] WARMUP__r0 already passed (S20261006-134605__WARMUP__r0__003603)
+[14:50:27] [SKIP] B3_DeterministicBridge__r1 already passed (S20261006-134605__B3_DeterministicBridge__r1__3a5bff)
+[14:50:27] [PURGE] removing rows from the previous attempt: S20261006-134605__B4_AdversarialRobustness__r1__f8b521
+[14:50:27] [PURGE] removed; {'detections': 0, 'ground_truth': 0, 'revocations': 0}
+
+==========================================================================
+  B4_AdversarialRobustness   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=True enforce=False tier2=False
+  S20261006-134605__B4_AdversarialRobustness__r1__8d5891
+==========================================================================
+[14:50:28] [SETTLE] 75s for the previous cell to drain fully...
+[14:52:17] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[14:53:28] [LOCUST] Aggregated                                                                              4      6      7     11     32     57     86    110    170    1
+[14:53:28] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__B4_AdversarialRobustness__r1__8d5891_locust.log
+[14:53:28] [RESOURCE] clickhouse=117.7m/1965.6Mi  nats=47.8m/228.7Mi  sarvajna-cep=137.3m/40.6Mi  soar-worker=43.2m/100.4Mi  target-app=453.1m/150.6Mi  tetragon=1102.9m/5262.5Mi  vector=96.0m/345.9Mi
+[14:53:28] [BACKLOG] correlator queue peaked at 9
+[14:53:28] [DRAIN] 0s: 1620 correlated rows...
+[14:53:43] [DRAIN] 15s: 1648 correlated rows...
+[14:53:58] [DRAIN] 30s: 1648 correlated rows...
+[14:54:13] [DRAIN] 45s: 1648 correlated rows...
+[14:54:28] [DRAIN] 60s: 1648 correlated rows...
+[14:54:52] [DRAIN] Quiescent at 84s with 1648 correlated rows.
+[14:54:54] [GT] Ingested 5120 rows.
+[14:55:06] [CLOCK] Tetragon vs node: +0.9s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8001 correlated=1648 with_attack_id=1648 kernel_true=8001 app_emit=1648
+  matched_on: no_match=5960  trace_id=813  dest_endpoint=427  file_path=408  no_label=393
+  actions:    none_uncorrelated=6353  revoke_session_already_in_force=375  revoke_session=1273
+  revocations=(1273, 1273)  blocked_requests=0  delivery={'issued': 5120, 'delivered': 5120}
+  cep: processed=15922 outcomes=8001 dropped/ignored=2801 app=5120 residual=0 held=0 stable=True
+  telemetry: 15922 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=3370.0ms  RCE pipeline_p50=12.0ms p95=21.0ms  SSRF pipeline_p50=2.0ms p95=11.0ms
+  -------------------------------------------------------
+
+[14:55:06] [CELL] PASS B4_AdversarialRobustness__r1   execution recall 418/418; misattributed to victims 395; adversarial issued strip=389 forgery=395
+
+==========================================================================
+  B1_TemporalOnly   rep 1   mode=temporal window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__B1_TemporalOnly__r1__1ad382
+==========================================================================
+[14:55:06] [SETTLE] 75s for the previous cell to drain fully...
+[14:56:55] [CEP] [CEP] outgoing correlator gone after 28s; exactly one running
+[14:58:07] [LOCUST] Aggregated                                                                              3      4      5      5     10     34     62     75    110    1
+[14:58:07] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__B1_TemporalOnly__r1__1ad382_locust.log
+[14:58:07] [RESOURCE] clickhouse=134.9m/1965.6Mi  nats=53.8m/228.7Mi  sarvajna-cep=135.7m/40.9Mi  soar-worker=63.7m/98.1Mi  target-app=399.3m/151.1Mi  tetragon=1083.6m/5448.0Mi  vector=97.6m/376.4Mi
+[14:58:07] [BACKLOG] correlator queue peaked at 9
+[14:58:07] [DRAIN] 0s: 4608 correlated rows...
+[14:58:22] [DRAIN] 15s: 4608 correlated rows...
+[14:58:37] [DRAIN] 30s: 4608 correlated rows...
+[14:58:52] [DRAIN] 45s: 4608 correlated rows...
+[14:59:07] [DRAIN] 60s: 4608 correlated rows...
+[14:59:31] [DRAIN] Quiescent at 84s with 4608 correlated rows.
+[14:59:33] [GT] Ingested 5171 rows.
+[14:59:45] [CLOCK] Tetragon vs node: +0.9s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8344 correlated=4608 with_attack_id=4608 kernel_true=8344 app_emit=4608
+  matched_on: temporal=4608  no_match=3169  mode_cannot_match_execve=567
+  actions:    none_uncorrelated=3736  revoke_session_already_in_force=3423  revoke_session=1185
+  revocations=(1185, 1185)  blocked_requests=0  delivery={'issued': 5171, 'delivered': 5171}
+  cep: processed=14649 outcomes=8344 dropped/ignored=1134 app=5171 residual=0 held=0 stable=True
+  telemetry: 14649 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=5.0ms p95=43.0ms  SSRF pipeline_p50=2.0ms p95=9.0ms
+  -------------------------------------------------------
+
+[14:59:45] [CELL] PASS B1_TemporalOnly__r1   false positives 3543
+
+==========================================================================
+  B2_SpatialResource   rep 1   mode=spatial window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__B2_SpatialResource__r1__7ab43f
+==========================================================================
+[14:59:45] [SETTLE] 75s for the previous cell to drain fully...
+[15:01:35] [CEP] [CEP] outgoing correlator gone after 26s; exactly one running
+[15:02:46] [LOCUST] Aggregated                                                                              3      4      5      5     10     34     67     80    130    1
+[15:02:46] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__B2_SpatialResource__r1__7ab43f_locust.log
+[15:02:46] [RESOURCE] clickhouse=84.6m/1965.6Mi  nats=50.2m/228.7Mi  sarvajna-cep=142.8m/52.0Mi  soar-worker=47.0m/124.4Mi  target-app=388.1m/151.1Mi  tetragon=1002.9m/5547.2Mi  vector=96.2m/376.4Mi
+[15:02:46] [BACKLOG] correlator queue peaked at 3
+[15:02:46] [DRAIN] 0s: 1109 correlated rows...
+[15:03:01] [DRAIN] 15s: 1117 correlated rows...
+[15:03:16] [DRAIN] 30s: 1117 correlated rows...
+[15:03:31] [DRAIN] 45s: 1117 correlated rows...
+[15:03:46] [DRAIN] 60s: 1117 correlated rows...
+[15:04:10] [DRAIN] Quiescent at 84s with 1117 correlated rows.
+[15:04:12] [GT] Ingested 5126 rows.
+[15:04:24] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8324 correlated=1117 with_attack_id=1117 kernel_true=8324 app_emit=1117
+  matched_on: no_match=6654  file_path=575  mode_cannot_match_execve=553  dest_endpoint=542
+  actions:    none_uncorrelated=7207  revoke_session=1117
+  revocations=(1117, 1117)  blocked_requests=0  delivery={'issued': 5126, 'delivered': 5126}
+  cep: processed=14556 outcomes=8324 dropped/ignored=1106 app=5126 residual=0 held=0 stable=True
+  telemetry: 14556 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=2.0ms p95=4071.0ms  SSRF pipeline_p50=2.0ms p95=10.0ms
+  -------------------------------------------------------
+
+[15:04:24] [CELL] PASS B2_SpatialResource__r1
+
+==========================================================================
+  WINDOW_20000ms   rep 1   mode=deterministic window=20000ms horizon=20000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WINDOW_20000ms__r1__6718fe
+==========================================================================
+[15:04:24] [SETTLE] 75s for the previous cell to drain fully...
+[15:06:14] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[15:07:26] [LOCUST] Aggregated                                                                              3      4      5      5      9     34     61     75    100    1
+[15:07:26] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__WINDOW_20000ms__r1__6718fe_locust.log
+[15:07:26] [RESOURCE] clickhouse=79.9m/1965.6Mi  nats=46.5m/228.7Mi  sarvajna-cep=145.4m/40.9Mi  soar-worker=33.9m/101.2Mi  target-app=388.8m/154.1Mi  tetragon=990.6m/5616.6Mi  vector=96.6m/376.4Mi
+[15:07:26] [BACKLOG] correlator queue peaked at 2
+[15:07:26] [DRAIN] 0s: 1658 correlated rows...
+[15:07:41] [DRAIN] 15s: 1658 correlated rows...
+[15:07:56] [DRAIN] 30s: 1658 correlated rows...
+[15:08:11] [DRAIN] 45s: 1658 correlated rows...
+[15:08:26] [DRAIN] 60s: 1658 correlated rows...
+[15:08:50] [DRAIN] Quiescent at 84s with 1658 correlated rows.
+[15:08:52] [GT] Ingested 5196 rows.
+[15:09:04] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8428 correlated=1658 with_attack_id=1658 kernel_true=8428 app_emit=1658
+  matched_on: no_match=6766  dest_endpoint=581  trace_id=544  file_path=533  no_label=4
+  actions:    none_uncorrelated=6770  revoke_session=1658
+  revocations=(1658, 1658)  blocked_requests=0  delivery={'issued': 5196, 'delivered': 5196}
+  cep: processed=14720 outcomes=8428 dropped/ignored=1096 app=5196 residual=0 held=0 stable=True
+  telemetry: 14720 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=6744.0ms  RCE pipeline_p50=6.0ms p95=14.0ms  SSRF pipeline_p50=2.0ms p95=10.0ms
+  -------------------------------------------------------
+
+[15:09:04] [CELL] PASS WINDOW_20000ms__r1   execution recall 544/544
+
+==========================================================================
+  WINDOW_10000ms   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WINDOW_10000ms__r1__a72fa9
+==========================================================================
+[15:09:04] [SETTLE] 75s for the previous cell to drain fully...
+[15:10:53] [CEP] [CEP] outgoing correlator gone after 25s; exactly one running
+[15:12:04] [LOCUST] Aggregated                                                                              3      4      5      5      8     33     61     79    140    1
+[15:12:04] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__WINDOW_10000ms__r1__a72fa9_locust.log
+[15:12:04] [RESOURCE] clickhouse=93.0m/1965.6Mi  nats=49.5m/228.7Mi  sarvajna-cep=148.6m/40.3Mi  soar-worker=47.4m/98.8Mi  target-app=382.8m/154.1Mi  tetragon=1017.0m/5711.6Mi  vector=96.3m/376.4Mi
+[15:12:04] [BACKLOG] correlator queue peaked at 11
+[15:12:05] [DRAIN] 0s: 1649 correlated rows...
+[15:12:20] [DRAIN] 15s: 1649 correlated rows...
+[15:12:35] [DRAIN] 30s: 1649 correlated rows...
+[15:12:50] [DRAIN] 45s: 1649 correlated rows...
+[15:13:05] [DRAIN] 60s: 1649 correlated rows...
+[15:13:29] [DRAIN] Quiescent at 84s with 1649 correlated rows.
+[15:13:30] [GT] Ingested 5188 rows.
+[15:13:41] [CLOCK] Tetragon vs node: +0.3s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8427 correlated=1649 with_attack_id=1649 kernel_true=8427 app_emit=1649
+  matched_on: no_match=6774  file_path=561  trace_id=545  dest_endpoint=543  no_label=4
+  actions:    none_uncorrelated=6778  revoke_session=1649
+  revocations=(1649, 1649)  blocked_requests=0  delivery={'issued': 5188, 'delivered': 5188}
+  cep: processed=14713 outcomes=8427 dropped/ignored=1098 app=5188 residual=0 held=0 stable=True
+  telemetry: 14713 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=6366.0ms  RCE pipeline_p50=6.0ms p95=11.0ms  SSRF pipeline_p50=2.0ms p95=9.0ms
+  -------------------------------------------------------
+
+[15:13:41] [CELL] PASS WINDOW_10000ms__r1   execution recall 545/545
+
+==========================================================================
+  WINDOW_2000ms_DECOUPLED   rep 1   mode=deterministic window=2000ms horizon=60000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WINDOW_2000ms_DECOUPLED__r1__7e662f
+==========================================================================
+[15:13:42] [SETTLE] 75s for the previous cell to drain fully...
+[15:15:32] [CEP] [CEP] outgoing correlator gone after 28s; exactly one running
+[15:16:44] [LOCUST] Aggregated                                                                              3      4      5      5      9     34     65     80    120    1
+[15:16:44] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__WINDOW_2000ms_DECOUPLED__r1__7e662f_locust.log
+[15:16:44] [RESOURCE] clickhouse=81.2m/1965.6Mi  nats=52.2m/228.7Mi  sarvajna-cep=142.3m/43.7Mi  soar-worker=58.4m/114.9Mi  target-app=387.1m/154.1Mi  tetragon=1022.0m/5850.8Mi  vector=95.4m/376.4Mi
+[15:16:44] [BACKLOG] correlator queue peaked at 17
+[15:16:44] [DRAIN] 0s: 1659 correlated rows...
+[15:16:59] [DRAIN] 15s: 1659 correlated rows...
+[15:17:14] [DRAIN] 30s: 1659 correlated rows...
+[15:17:29] [DRAIN] 45s: 1659 correlated rows...
+[15:17:44] [DRAIN] 60s: 1659 correlated rows...
+[15:18:08] [DRAIN] Quiescent at 84s with 1659 correlated rows.
+[15:18:09] [GT] Ingested 5180 rows.
+[15:18:20] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8399 correlated=1659 with_attack_id=1659 kernel_true=8399 app_emit=1659
+  matched_on: no_match=6736  dest_endpoint=570  trace_id=562  file_path=527  no_label=4
+  actions:    none_uncorrelated=6740  revoke_session=1659
+  revocations=(1659, 1659)  blocked_requests=0  delivery={'issued': 5180, 'delivered': 5180}
+  cep: processed=14711 outcomes=8399 dropped/ignored=1132 app=5180 residual=0 held=0 stable=True
+  telemetry: 14711 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=2.0ms p95=106.0ms  RCE pipeline_p50=6.0ms p95=13.0ms  SSRF pipeline_p50=2.0ms p95=12.0ms
+  -------------------------------------------------------
+
+[15:18:20] [CELL] PASS WINDOW_2000ms_DECOUPLED__r1   execution recall 562/562
+
+==========================================================================
+  WINDOW_30000ms   rep 1   mode=deterministic window=30000ms horizon=30000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WINDOW_30000ms__r1__fedc37
+==========================================================================
+[15:18:21] [SETTLE] 75s for the previous cell to drain fully...
+[15:20:09] [CEP] [CEP] outgoing correlator gone after 25s; exactly one running
+[15:21:21] [LOCUST] Aggregated                                                                              3      4      5      5      9     36     66     82    130    1
+[15:21:21] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__WINDOW_30000ms__r1__fedc37_locust.log
+[15:21:21] [RESOURCE] clickhouse=101.9m/1965.6Mi  nats=42.8m/228.7Mi  sarvajna-cep=141.7m/40.5Mi  soar-worker=20.4m/118.9Mi  target-app=388.4m/154.1Mi  tetragon=995.7m/5891.1Mi  vector=98.0m/376.4Mi
+[15:21:21] [BACKLOG] correlator queue peaked at 8
+[15:21:21] [DRAIN] 0s: 1614 correlated rows...
+[15:21:36] [DRAIN] 15s: 1614 correlated rows...
+[15:21:51] [DRAIN] 30s: 1614 correlated rows...
+[15:22:06] [DRAIN] 45s: 1614 correlated rows...
+[15:22:21] [DRAIN] 60s: 1614 correlated rows...
+[15:22:45] [DRAIN] Quiescent at 84s with 1614 correlated rows.
+[15:22:47] [GT] Ingested 5171 rows.
+[15:22:58] [CLOCK] Tetragon vs node: +0.9s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8439 correlated=1614 with_attack_id=1614 kernel_true=8439 app_emit=1614
+  matched_on: no_match=6821  trace_id=552  dest_endpoint=533  file_path=529  no_label=4
+  actions:    none_uncorrelated=6825  revoke_session=1614
+  revocations=(1614, 1614)  blocked_requests=0  delivery={'issued': 5171, 'delivered': 5171}
+  cep: processed=14722 outcomes=8439 dropped/ignored=1112 app=5171 residual=0 held=0 stable=True
+  telemetry: 14722 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=6608.0ms  RCE pipeline_p50=6.0ms p95=13.0ms  SSRF pipeline_p50=2.0ms p95=8.0ms
+  -------------------------------------------------------
+
+[15:22:58] [CELL] PASS WINDOW_30000ms__r1   execution recall 552/552
+
+==========================================================================
+  WINDOW_5000ms   rep 1   mode=deterministic window=5000ms horizon=5000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WINDOW_5000ms__r1__514f27
+==========================================================================
+[15:22:59] [SETTLE] 75s for the previous cell to drain fully...
+[15:24:47] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[15:25:58] [LOCUST] Aggregated                                                                              3      4      5      5      8     30     55     71    100    1
+[15:25:58] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__WINDOW_5000ms__r1__514f27_locust.log
+[15:25:58] [RESOURCE] clickhouse=101.6m/1965.6Mi  nats=53.5m/228.7Mi  sarvajna-cep=147.8m/41.0Mi  soar-worker=55.5m/98.6Mi  target-app=390.8m/154.1Mi  tetragon=1052.2m/5972.0Mi  vector=98.5m/387.9Mi
+[15:25:58] [BACKLOG] correlator queue peaked at 11
+[15:25:58] [DRAIN] 0s: 1695 correlated rows...
+[15:26:13] [DRAIN] 15s: 1705 correlated rows...
+[15:26:29] [DRAIN] 30s: 1705 correlated rows...
+[15:26:44] [DRAIN] 45s: 1705 correlated rows...
+[15:26:59] [DRAIN] 60s: 1705 correlated rows...
+[15:27:23] [DRAIN] Quiescent at 84s with 1705 correlated rows.
+[15:27:24] [GT] Ingested 5240 rows.
+[15:27:35] [CLOCK] Tetragon vs node: +0.2s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8506 correlated=1705 with_attack_id=1705 kernel_true=8506 app_emit=1705
+  matched_on: no_match=6797  dest_endpoint=587  file_path=560  trace_id=558  no_label=4
+  actions:    none_uncorrelated=6801  revoke_session=1705
+  revocations=(1705, 1705)  blocked_requests=0  delivery={'issued': 5240, 'delivered': 5240}
+  cep: processed=14870 outcomes=8506 dropped/ignored=1124 app=5240 residual=0 held=0 stable=True
+  telemetry: 14870 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=2452.0ms  RCE pipeline_p50=6.0ms p95=15.0ms  SSRF pipeline_p50=2.0ms p95=8.0ms
+  -------------------------------------------------------
+
+[15:27:35] [CELL] PASS WINDOW_5000ms__r1   execution recall 558/558
+
+==========================================================================
+  WINDOW_2000ms   rep 1   mode=deterministic window=2000ms horizon=2000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__WINDOW_2000ms__r1__3e9ba3
+==========================================================================
+[15:27:35] [SETTLE] 75s for the previous cell to drain fully...
+[15:29:23] [CEP] [CEP] outgoing correlator gone after 22s; exactly one running
+[15:30:36] [LOCUST] Aggregated                                                                              3      4      5      5      8     32     61     75    110    1
+[15:30:36] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__WINDOW_2000ms__r1__3e9ba3_locust.log
+[15:30:36] [RESOURCE] clickhouse=93.0m/2393.2Mi  nats=52.8m/228.7Mi  sarvajna-cep=145.5m/55.4Mi  soar-worker=59.0m/128.8Mi  target-app=379.7m/154.1Mi  tetragon=1032.4m/6492.5Mi  vector=97.0m/388.2Mi
+[15:30:36] [BACKLOG] correlator queue peaked at 10
+[15:30:36] [DRAIN] 0s: 1685 correlated rows...
+[15:30:51] [DRAIN] 15s: 1685 correlated rows...
+[15:31:06] [DRAIN] 30s: 1685 correlated rows...
+[15:31:21] [DRAIN] 45s: 1685 correlated rows...
+[15:31:36] [DRAIN] 60s: 1685 correlated rows...
+[15:32:00] [DRAIN] Quiescent at 84s with 1685 correlated rows.
+[15:32:02] [GT] Ingested 5187 rows.
+[15:32:13] [CLOCK] Tetragon vs node: +0.7s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8384 correlated=1685 with_attack_id=1685 kernel_true=8384 app_emit=1685
+  matched_on: no_match=6695  trace_id=585  dest_endpoint=568  file_path=532  no_label=4
+  actions:    none_uncorrelated=6699  revoke_session_already_in_force=1  revoke_session=1684
+  revocations=(1684, 1684)  blocked_requests=0  delivery={'issued': 5187, 'delivered': 5187}
+  cep: processed=14749 outcomes=8384 dropped/ignored=1178 app=5187 residual=0 held=0 stable=True
+  telemetry: 14749 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=2.0ms p95=848.0ms  RCE pipeline_p50=6.0ms p95=15.0ms  SSRF pipeline_p50=2.0ms p95=11.0ms
+  -------------------------------------------------------
+
+[15:32:13] [CELL] PASS WINDOW_2000ms__r1   execution recall 585/585
+
+==========================================================================
+  ENFORCE_Forgery   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=True enforce=True tier2=False
+  S20261006-134605__ENFORCE_Forgery__r1__471a3f
+==========================================================================
+[15:32:14] [SETTLE] 75s for the previous cell to drain fully...
+[15:34:02] [CEP] [CEP] outgoing correlator gone after 26s; exactly one running
+[15:35:14] [LOCUST] Aggregated                                                                              4      5      6      7     21     43     70     94    150    1
+[15:35:14] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENFORCE_Forgery__r1__471a3f_locust.log
+[15:35:14] [RESOURCE] clickhouse=99.3m/2393.2Mi  nats=45.2m/228.7Mi  sarvajna-cep=119.4m/39.3Mi  soar-worker=43.3m/100.3Mi  target-app=437.0m/154.1Mi  tetragon=1053.0m/6492.5Mi  vector=92.3m/388.2Mi
+[15:35:14] [BACKLOG] correlator queue peaked at 2
+[15:35:14] [DRAIN] 0s: 1676 correlated rows...
+[15:35:29] [DRAIN] 15s: 1691 correlated rows...
+[15:35:44] [DRAIN] 30s: 1691 correlated rows...
+[15:35:59] [DRAIN] 45s: 1691 correlated rows...
+[15:36:14] [DRAIN] 60s: 1691 correlated rows...
+[15:36:38] [DRAIN] Quiescent at 84s with 1691 correlated rows.
+[15:36:40] [GT] Ingested 5333 rows.
+[15:36:51] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=5874 correlated=1691 with_attack_id=1691 kernel_true=5874 app_emit=1691
+  matched_on: no_match=3744  trace_id=878  no_label=439  file_path=424  dest_endpoint=389
+  actions:    none_uncorrelated=4183  revoke_session_already_in_force=394  revoke_session=1297
+  revocations=(1297, 1297)  blocked_requests=1217  delivery={'issued': 5333, 'delivered': 4116}
+  cep: processed=14276 outcomes=5874 dropped/ignored=3069 app=5333 residual=0 held=0 stable=True
+  telemetry: 14276 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=12.0ms  RCE pipeline_p50=18.0ms p95=34.0ms  SSRF pipeline_p50=3.0ms p95=12.0ms
+  -------------------------------------------------------
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CELL FAILED: ENFORCE_Forgery__r1
+!  run_id: S20261006-134605__ENFORCE_Forgery__r1__471a3f
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  - delivery 4116/5333 = 0.772; undelivered requests are indistinguishable from undetected attacks
+!
+!  11 cell(s) collected and verified before this one. Their data is kept.
+!  Diagnostics: benchmarks/diag/S20261006-134605__ENFORCE_Forgery__r1__471a3f.json
+!
+!  Fix the cause, then continue from this cell:
+!      python benchmarks/run_benchmark.py --resume S20261006-134605
+!
+!  The failed cell's rows are deleted and verified gone before it is
+!  collected again, so nothing is counted twice.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[15:53:30] [RESUME] continuing suite S20261006-134605
+[15:53:30] [PREFLIGHT] ==========================================================
+
+[1m[0] Local tooling[0m
+  [32mok  [0m kubectl on PATH                                /usr/bin/kubectl
+  [32mok  [0m docker on PATH                                 /usr/bin/docker
+  [32mok  [0m helm on PATH                                   /usr/local/bin/helm
+  [32mok  [0m jq on PATH                                     /usr/bin/jq
+  [32mok  [0m locust on PATH                                 /home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust
+  [32mok  [0m python module clickhouse_driver                importable
+  [32mok  [0m python module nats                             importable
+  [32mok  [0m python module pandas                           importable
+  [32mok  [0m python module numpy                            importable
+  [32mok  [0m python module matplotlib                       importable
+
+[1m[1] Cluster and workloads[0m
+  [32mok  [0m node container running                         k3d-sarvajna-cluster-server-0
+  [32mok  [0m apiserver readyz                               ok
+  [32mok  [0m sarvajna-infra/clickhouse                      1/1 Running restarts=0 age=9h
+  [32mok  [0m sarvajna-infra/nats                            1/1 Running restarts=0 age=9h
+  [32mok  [0m sarvajna-infra/postgres                        1/1 Running restarts=0 age=9h
+  [32mok  [0m sarvajna-infra/sarvajna-cep                    1/1 Running restarts=0 age=20m
+  [32mok  [0m sarvajna-infra/soar-worker                     1/1 Running restarts=0 age=18m
+  [32mok  [0m sarvajna-infra/vector                          1/1 Running restarts=0 age=5h19m
+  [32mok  [0m default/target-app                             1/1 Running restarts=0 age=66m
+  [32mok  [0m kube-system/tetragon                           2/2 Running restarts=0 age=65m
+  [33mwarn[0m kube-system/cilium-q                           1/1 Running restarts=10 age=28d
+       [33mremedy:[0m kubectl logs -n kube-system cilium-qppln --previous
+  [32mok  [0m exactly one correlator                         1 pod(s)
+
+[1m[2] Network paths[0m
+  [32mok  [0m localhost:9000 (clickhouse)                    reachable
+  [32mok  [0m localhost:4222 (nats)                          reachable
+  [32mok  [0m localhost:3501 (target-app)                    reachable
+  [32mok  [0m endpoint resolution                            clickhouse_pod=10.42.0.134 nats_pod=10.42.0.230 postgres_pod=10.42.0.115 postgres_svc=10.43.170.130 clickhouse_svc=10.43.145.181 target_app_pod=10.42.0.131
+
+[1m[3] ClickHouse schema and capacity[0m
+  [32mok  [0m clickhouse responding                          1
+  [32mok  [0m table detections                               32 columns
+  [32mok  [0m table ground_truth                             12 columns
+  [32mok  [0m table revocations                              10 columns
+  [32mok  [0m table raw_telemetry                            12 columns
+  [32mok  [0m detections.t_kernel precision                  DateTime64(6)
+  [32mok  [0m detections.t_correlate precision               DateTime64(6)
+  [32mok  [0m detections.t_action precision                  DateTime64(6)
+  [32mok  [0m detections.window_ms range                     UInt32
+       existing row counts                            raw_telemetry=187540  ground_truth=59553  revocations=17238  detections=93618
+  [32mok  [0m node disk headroom                             100G free
+
+[1m[4] Revocation store[0m
+  [32mok  [0m revocations table                              revocations
+  [33mwarn[0m revocations currently in force                 1297 row(s)
+       [33mremedy:[0m a principal revoked by an earlier run would start the next cell already blocked; the harness truncates this per cell
+
+[1m[5] NATS JetStream[0m
+  [32mok  [0m stream TELEMETRY                               0 msgs, 1 consumer(s)
+  [32mok  [0m stream ALERTS                                  0 msgs, 1 consumer(s)
+
+[1m[6] Kernel telemetry[0m
+  [32mok  [0m tetragon enable-process-environment-variables  set
+  [32mok  [0m tetragon filter-environment-variables          set
+  [32mok  [0m tetragon enable-cri                            set
+  [32mok  [0m tetragon cri-endpoint                          set
+  [32mok  [0m tetragon enable-cgidmap                        set
+       enrichment retry ceiling                       retries=0 delay=1s -> up to 0s added exec-path latency
+  [32mok  [0m policy sarvajna-file-open                      attached
+  [32mok  [0m policy sarvajna-tcp-connect                    attached
+  [32mok  [0m tetragon clock vs node                         +0.7s (tolerance 60s)
+
+[1m[7] Enforcement capability[0m
+  [32mok  [0m quarantine policy present                      isolate-compromised-pod   28d   True
+  [32mok  [0m cilium agent                                   cilium-qppln
+  [32mok  [0m policy enforcement mode                        default
+  [32mok  [0m target endpoint enforcement                    3799 Disabled Disabled 15777 k8s:app=target-app 10.42.0.131 ready
+
+[1m[8] Application and context bridge[0m
+  [32mok  [0m health endpoint                                target-app-8677b5df4f-2nnkc
+  [32mok  [0m revocation enforcement enabled                 enforce=True revoked=1297 refreshes=7901
+  [32mok  [0m revocation store reachable                     last refresh 231ms ago
+  [32mok  [0m outbound allowlist                             10.42.0.230:4222
+  [32mok  [0m restricted objects present                     513 of 512
+  [33mwarn[0m bridge canary                                  not in current log window
+       [33mremedy:[0m it fires only at startup; kubectl rollout restart -n default deployment/target-app to re-check
+
+[1m[9] Pipeline configuration[0m
+  [32mok  [0m vector: tetragon_direct                        present
+  [32mok  [0m vector: app_logs                               present
+  [32mok  [0m vector: glob_minimum_cooldown_ms               present
+  [32mok  [0m vector: read_from: end                         present
+  [32mok  [0m vector: kernel_time                            present
+  [32mok  [0m vector: collector_time                         present
+  [32mok  [0m vector: .pod_name == "unknown"                 present
+  [32mok  [0m collector checkpoints survive restart          hostPath
+       application log rotation state                 2 file(s) in the log directory
+  [32mok  [0m no host telemetry collected                    0 unresolved kernel events in the last 30 min
+  [32mok  [0m sarvajna-cep JOIN_MODE                         JOIN_MODE=deterministic
+  [32mok  [0m sarvajna-cep CORRELATION_WINDOW_MS             CORRELATION_WINDOW_MS=10000
+  [32mok  [0m sarvajna-cep PENDING_EXECVE_HORIZON_MS         PENDING_EXECVE_HORIZON_MS=10000
+  [32mok  [0m sarvajna-cep IGNORE_DADDRS                     IGNORE_DADDRS=10.42.0.115,10.43.170.130
+  [32mok  [0m soar-worker ENRICH_RETRIES                     ENRICH_RETRIES=0
+  [32mok  [0m soar-worker ENFORCE_REVOCATION                 ENFORCE_REVOCATION=true
+  [32mok  [0m soar-worker TIER2_ENABLED                      TIER2_ENABLED=false
+  [32mok  [0m soar-worker ACT_ON_UNCORRELATED                ACT_ON_UNCORRELATED=false
+  [32mok  [0m target not quarantined                         clean
+  [32mok  [0m stream retention bounded                       TELEMETRY: {'msgs': 6, 'max_age_s': 600.0}  ALERTS: {'msgs': 5, 'max_age_s': 600.0}
+[15:53:43] [ENV] manifest written: node kernel 6.15.0-1-cachyos, 9 component images
+[15:53:43] [APP] Configuring application (once for the whole suite)...
+[15:53:48] [CANARY] PASS expected=canary-1791282225564 observed=canary-1791282225564
+[15:53:48] [APP] Creating 512 objects...
+[15:53:48] [APP] Ready. objects=513 allowlist=['10.42.0.230:4222']
+[15:53:49] [SETUP] Restarting Tetragon to reset its clock baseline...
+[15:53:55] [SETUP] TracingPolicies attached after 2s.
+[15:54:06] [CLOCK] Tetragon vs node: +0.1s (tolerance 60s)
+[15:54:09] [SETUP] TracingPolicies attached after 0s.
+[15:54:20] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+[15:54:20] [SETUP] Warming port-forward after application restart...
+[15:54:22] [SETUP] Port-forward re-established and healthy on localhost:3501.
+
+[1m[7] Quarantine enforcement (destructive, self-restoring)[0m
+       containment latency (apply)                    28.7s
+  [32mok  [0m pod-network traffic severed                    ingress=BLOCKED egress=BLOCKED still_enforced=True
+       port-forward survives containment              OK
+  [32mok  [0m recovery after reset                           ingress=OK egress=OK  [BENCHMARK] Quarantine lifted on 1 pod(s); datapath converged after 10s.
+
+[1m[11] Revocation takes effect[0m
+[15:55:50] [REVOCATION] [CEP] outgoing correlator gone after 26s; exactly one running
+  [32mok  [0m principal serves before revocation             HTTP 200
+  [32mok  [0m principal refused after revocation             HTTP 403 after 1.30s
+       revocation effect latency                      1.30s
+
+[1m======================================================================[0m
+  [32mPASS 78[0m   [33mWARN 3[0m   [31mFAIL 0[0m
+
+  [33mNON-BLOCKING:[0m
+    - [1] kube-system/cilium-q: 1/1 Running restarts=10 age=28d
+    - [4] revocations currently in force: 1297 row(s)
+    - [8] bridge canary: not in current log window
+
+  [1mVERDICT: READY (with warnings)[0m
+[1m======================================================================[0m
+  report: benchmarks/diag/preflight.json
+
+[15:56:43] [PREFLIGHT] ==========================================================
+[15:56:43] [RESUME] no orphaned rows from interrupted attempts
+
+##########################################################################
+#  SUITE S20261006-134605   20 cells
+##########################################################################
+[15:56:43] [SKIP] WARMUP__r0 already passed (S20261006-134605__WARMUP__r0__003603)
+[15:56:43] [SKIP] B3_DeterministicBridge__r1 already passed (S20261006-134605__B3_DeterministicBridge__r1__3a5bff)
+[15:56:43] [SKIP] B4_AdversarialRobustness__r1 already passed (S20261006-134605__B4_AdversarialRobustness__r1__8d5891)
+[15:56:43] [SKIP] B1_TemporalOnly__r1 already passed (S20261006-134605__B1_TemporalOnly__r1__1ad382)
+[15:56:43] [SKIP] B2_SpatialResource__r1 already passed (S20261006-134605__B2_SpatialResource__r1__7ab43f)
+[15:56:43] [SKIP] WINDOW_20000ms__r1 already passed (S20261006-134605__WINDOW_20000ms__r1__6718fe)
+[15:56:43] [SKIP] WINDOW_10000ms__r1 already passed (S20261006-134605__WINDOW_10000ms__r1__a72fa9)
+[15:56:43] [SKIP] WINDOW_2000ms_DECOUPLED__r1 already passed (S20261006-134605__WINDOW_2000ms_DECOUPLED__r1__7e662f)
+[15:56:43] [SKIP] WINDOW_30000ms__r1 already passed (S20261006-134605__WINDOW_30000ms__r1__fedc37)
+[15:56:43] [SKIP] WINDOW_5000ms__r1 already passed (S20261006-134605__WINDOW_5000ms__r1__514f27)
+[15:56:43] [SKIP] WINDOW_2000ms__r1 already passed (S20261006-134605__WINDOW_2000ms__r1__3e9ba3)
+[15:56:43] [PURGE] removing rows from the previous attempt: S20261006-134605__ENFORCE_Forgery__r1__471a3f
+[15:56:45] [PURGE] removed; {'detections': 0, 'ground_truth': 0, 'revocations': 0}
+
+==========================================================================
+  ENFORCE_Forgery   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=True enforce=True tier2=False
+  S20261006-134605__ENFORCE_Forgery__r1__8edcc1
+==========================================================================
+[15:56:47] [SETTLE] 75s for the previous cell to drain fully...
+[15:58:36] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[15:59:48] [LOCUST] Aggregated                                                                              4      5      6      8     30     50     70     83    130    1
+[15:59:48] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENFORCE_Forgery__r1__8edcc1_locust.log
+[15:59:48] [RESOURCE] clickhouse=99.5m/2393.2Mi  nats=43.9m/228.7Mi  sarvajna-cep=112.2m/39.7Mi  soar-worker=40.3m/98.6Mi  target-app=456.7m/155.6Mi  tetragon=1055.3m/6492.5Mi  vector=88.4m/388.2Mi
+[15:59:48] [BACKLOG] correlator queue peaked at 18
+[15:59:48] [DRAIN] 0s: 1669 correlated rows...
+[16:00:03] [DRAIN] 15s: 1685 correlated rows...
+[16:00:18] [DRAIN] 30s: 1685 correlated rows...
+[16:00:33] [DRAIN] 45s: 1685 correlated rows...
+[16:00:48] [DRAIN] 60s: 1685 correlated rows...
+[16:01:12] [DRAIN] Quiescent at 84s with 1685 correlated rows.
+[16:01:13] [GT] Ingested 5297 rows.
+[16:01:27] [CLOCK] Tetragon vs node: +1.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=5880 correlated=1685 with_attack_id=1685 kernel_true=5880 app_emit=1685
+  matched_on: no_match=3783  trace_id=867  file_path=417  no_label=412  dest_endpoint=401
+  actions:    none_uncorrelated=4195  revoke_session_already_in_force=419  revoke_session=1266
+  revocations=(1266, 1266)  blocked_requests=1202  delivery={'issued': 5297, 'delivered': 5297, 'blocked': 1202, 'undelivered': 0}
+  cep: processed=14143 outcomes=5880 dropped/ignored=2966 app=5297 residual=0 held=0 stable=True
+  telemetry: 14143 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=4.0ms p95=25.0ms  RCE pipeline_p50=16.0ms p95=31.0ms  SSRF pipeline_p50=3.0ms p95=22.0ms
+  -------------------------------------------------------
+
+[16:01:27] [CELL] PASS ENFORCE_Forgery__r1   refused by revocation 1202; execution recall 428/428; misattributed to victims 439; adversarial issued strip=408 forgery=439; blocked requests 1202
+
+==========================================================================
+  ENFORCE_TemporalBaseline   rep 1   mode=temporal window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=True tier2=False
+  S20261006-134605__ENFORCE_TemporalBaseline__r1__17abd0
+==========================================================================
+[16:01:27] [SETTLE] 75s for the previous cell to drain fully...
+[16:03:16] [CEP] [CEP] outgoing correlator gone after 26s; exactly one running
+[16:04:28] [LOCUST] Aggregated                                                                              3      3      4      5      6     15     41     56     76     
+[16:04:28] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENFORCE_TemporalBaseline__r1__17abd0_locust.log
+[16:04:28] [RESOURCE] clickhouse=101.8m/2393.2Mi  nats=33.7m/228.7Mi  sarvajna-cep=80.8m/38.1Mi  soar-worker=33.0m/99.9Mi  target-app=370.1m/155.6Mi  tetragon=884.9m/6492.5Mi  vector=77.4m/441.4Mi
+[16:04:28] [BACKLOG] correlator queue peaked at 4
+[16:04:28] [DRAIN] 0s: 1270 correlated rows...
+[16:04:43] [DRAIN] 15s: 1270 correlated rows...
+[16:04:58] [DRAIN] 30s: 1270 correlated rows...
+[16:05:13] [DRAIN] 45s: 1270 correlated rows...
+[16:05:28] [DRAIN] 60s: 1270 correlated rows...
+[16:05:52] [DRAIN] Quiescent at 84s with 1270 correlated rows.
+[16:05:54] [GT] Ingested 5343 rows.
+[16:06:07] [CLOCK] Tetragon vs node: +0.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=2518 correlated=1270 with_attack_id=1270 kernel_true=2518 app_emit=1270
+  matched_on: temporal=1270  no_match=690  mode_cannot_match_execve=558
+  actions:    none_uncorrelated=1248  revoke_session_already_in_force=49  revoke_session=1221
+  revocations=(1221, 1221)  blocked_requests=3519  delivery={'issued': 5343, 'delivered': 5343, 'blocked': 3519, 'undelivered': 0}
+  cep: processed=8977 outcomes=2518 dropped/ignored=1116 app=5343 residual=0 held=0 stable=True
+  telemetry: 8977 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=33.0ms p95=169.0ms  SSRF pipeline_p50=3.0ms p95=13.0ms
+  -------------------------------------------------------
+
+[16:06:07] [CELL] PASS ENFORCE_TemporalBaseline__r1   refused by revocation 3519; false positives 169; blocked requests 3519
+
+==========================================================================
+  ENFORCE_Baseline   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=True tier2=False
+  S20261006-134605__ENFORCE_Baseline__r1__3672d4
+==========================================================================
+[16:06:07] [SETTLE] 75s for the previous cell to drain fully...
+[16:07:56] [CEP] [CEP] outgoing correlator gone after 28s; exactly one running
+[16:09:08] [LOCUST] Aggregated                                                                              3      4      5      5      7     26     54     67     95    1
+[16:09:08] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENFORCE_Baseline__r1__3672d4_locust.log
+[16:09:08] [RESOURCE] clickhouse=117.2m/2393.2Mi  nats=51.1m/228.7Mi  sarvajna-cep=146.0m/41.3Mi  soar-worker=54.9m/101.1Mi  target-app=388.9m/155.6Mi  tetragon=1069.9m/6492.5Mi  vector=98.6m/512.0Mi
+[16:09:08] [BACKLOG] correlator queue peaked at 26
+[16:09:08] [DRAIN] 0s: 1635 correlated rows...
+[16:09:23] [DRAIN] 15s: 1635 correlated rows...
+[16:09:38] [DRAIN] 30s: 1635 correlated rows...
+[16:09:53] [DRAIN] 45s: 1635 correlated rows...
+[16:10:08] [DRAIN] 60s: 1635 correlated rows...
+[16:10:32] [DRAIN] Quiescent at 84s with 1635 correlated rows.
+[16:10:34] [GT] Ingested 5264 rows.
+[16:10:47] [CLOCK] Tetragon vs node: +0.5s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8583 correlated=1635 with_attack_id=1635 kernel_true=8583 app_emit=1635
+  matched_on: no_match=6944  file_path=551  trace_id=548  dest_endpoint=536  no_label=4
+  actions:    none_uncorrelated=6948  revoke_session=1635
+  revocations=(1635, 1635)  blocked_requests=0  delivery={'issued': 5264, 'delivered': 5264, 'blocked': 0, 'undelivered': 0}
+  cep: processed=14951 outcomes=8583 dropped/ignored=1104 app=5264 residual=0 held=0 stable=True
+  telemetry: 14951 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=5.0ms p95=6659.0ms  RCE pipeline_p50=16.0ms p95=28.0ms  SSRF pipeline_p50=3.0ms p95=14.0ms
+  -------------------------------------------------------
+
+[16:10:47] [CELL] PASS ENFORCE_Baseline__r1   execution recall 548/548; blocked requests 0 (attackers do not re-transact)
+[16:10:47] [SWEEP] Tetragon enrichment: retries=15 delay=1s
+[16:10:56] [SETUP] TracingPolicies attached after 2s.
+[16:11:08] [CLOCK] Tetragon vs node: +1.6s (tolerance 60s)
+
+==========================================================================
+  ENRICH_r15_d1   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=15x1s adv=False enforce=False tier2=False
+  S20261006-134605__ENRICH_r15_d1__r1__4e3d57
+==========================================================================
+[16:11:08] [SETTLE] 75s for the previous cell to drain fully...
+[16:12:57] [CEP] [CEP] outgoing correlator gone after 25s; exactly one running
+[16:14:09] [LOCUST] Aggregated                                                                              3      4      5      5      7     28     53     70     88    1
+[16:14:09] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENRICH_r15_d1__r1__4e3d57_locust.log
+[16:14:09] [RESOURCE] clickhouse=89.9m/2393.2Mi  nats=48.8m/228.7Mi  sarvajna-cep=144.2m/41.0Mi  soar-worker=45.4m/98.7Mi  target-app=384.6m/155.6Mi  tetragon=994.0m/6492.5Mi  vector=94.9m/512.0Mi
+[16:14:09] [BACKLOG] correlator queue peaked at 8
+[16:14:09] [DRAIN] 0s: 1434 correlated rows...
+[16:14:24] [DRAIN] 15s: 1703 correlated rows...
+[16:14:39] [DRAIN] 30s: 1703 correlated rows...
+[16:14:54] [DRAIN] 45s: 1703 correlated rows...
+[16:15:09] [DRAIN] 60s: 1703 correlated rows...
+[16:15:33] [DRAIN] Quiescent at 84s with 1703 correlated rows.
+[16:15:35] [GT] Ingested 5253 rows.
+[16:15:47] [CLOCK] Tetragon vs node: -13.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8561 correlated=1703 with_attack_id=1703 kernel_true=8561 app_emit=1703
+  matched_on: no_match=6854  dest_endpoint=601  trace_id=558  file_path=544  no_label=4
+  actions:    none_uncorrelated=6858  revoke_session=1703
+  revocations=(1703, 1703)  blocked_requests=0  delivery={'issued': 5253, 'delivered': 5253, 'blocked': 0, 'undelivered': 0}
+  cep: processed=14938 outcomes=8561 dropped/ignored=1124 app=5253 residual=0 held=0 stable=True
+  telemetry: 14938 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=6149.0ms  RCE pipeline_p50=12.0ms p95=136.0ms  SSRF pipeline_p50=2.0ms p95=13.0ms
+  -------------------------------------------------------
+
+[16:15:47] [CELL] PASS ENRICH_r15_d1__r1   execution recall 558/558
+[16:15:47] [SWEEP] Tetragon enrichment: retries=15 delay=2s
+[16:15:55] [SETUP] TracingPolicies attached after 2s.
+[16:16:08] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+==========================================================================
+  ENRICH_r15_d2   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=15x2s adv=False enforce=False tier2=False
+  S20261006-134605__ENRICH_r15_d2__r1__0c64e5
+==========================================================================
+[16:16:08] [SETTLE] 75s for the previous cell to drain fully...
+[16:17:57] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[16:19:09] [LOCUST] Aggregated                                                                              3      4      4      5      7     26     50     64     92    1
+[16:19:09] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENRICH_r15_d2__r1__0c64e5_locust.log
+[16:19:09] [RESOURCE] clickhouse=72.2m/2393.2Mi  nats=48.6m/228.7Mi  sarvajna-cep=148.4m/41.3Mi  soar-worker=46.3m/98.5Mi  target-app=386.8m/155.6Mi  tetragon=983.4m/6492.5Mi  vector=93.4m/512.0Mi
+[16:19:09] [BACKLOG] correlator queue peaked at 5
+[16:19:09] [DRAIN] 0s: 1155 correlated rows...
+[16:19:24] [DRAIN] 15s: 1456 correlated rows...
+[16:19:39] [DRAIN] 30s: 1708 correlated rows...
+[16:19:54] [DRAIN] 45s: 1708 correlated rows...
+[16:20:09] [DRAIN] 60s: 1708 correlated rows...
+[16:20:33] [DRAIN] Quiescent at 84s with 1708 correlated rows.
+[16:20:35] [GT] Ingested 5276 rows.
+[16:20:47] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8613 correlated=1708 with_attack_id=1708 kernel_true=8613 app_emit=1708
+  matched_on: no_match=6901  dest_endpoint=605  trace_id=557  file_path=546  no_label=4
+  actions:    none_uncorrelated=6905  revoke_session=1708
+  revocations=(1708, 1708)  blocked_requests=0  delivery={'issued': 5276, 'delivered': 5276, 'blocked': 0, 'undelivered': 0}
+  cep: processed=15011 outcomes=8613 dropped/ignored=1122 app=5276 residual=0 held=0 stable=True
+  telemetry: 15011 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=6536.0ms  RCE pipeline_p50=14.0ms p95=178.0ms  SSRF pipeline_p50=2.0ms p95=12.0ms
+  -------------------------------------------------------
+
+[16:20:47] [CELL] PASS ENRICH_r15_d2__r1   execution recall 557/557
+[16:20:47] [SWEEP] Tetragon enrichment: retries=3 delay=1s
+[16:20:55] [SETUP] TracingPolicies attached after 2s.
+[16:21:07] [CLOCK] Tetragon vs node: +1.5s (tolerance 60s)
+
+==========================================================================
+  ENRICH_r3_d1   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=3x1s adv=False enforce=False tier2=False
+  S20261006-134605__ENRICH_r3_d1__r1__2b219e
+==========================================================================
+[16:21:07] [SETTLE] 75s for the previous cell to drain fully...
+[16:22:55] [CEP] [CEP] outgoing correlator gone after 26s; exactly one running
+[16:24:07] [LOCUST] Aggregated                                                                              3      4      5      5      7     26     53     68     90    1
+[16:24:07] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENRICH_r3_d1__r1__2b219e_locust.log
+[16:24:07] [RESOURCE] clickhouse=85.4m/2393.2Mi  nats=49.8m/228.7Mi  sarvajna-cep=144.3m/41.0Mi  soar-worker=47.1m/98.9Mi  target-app=380.0m/155.6Mi  tetragon=985.8m/6492.5Mi  vector=95.7m/512.0Mi
+[16:24:07] [BACKLOG] correlator queue peaked at 16
+[16:24:07] [DRAIN] 0s: 1604 correlated rows...
+[16:24:22] [DRAIN] 15s: 1633 correlated rows...
+[16:24:37] [DRAIN] 30s: 1633 correlated rows...
+[16:24:52] [DRAIN] 45s: 1633 correlated rows...
+[16:25:07] [DRAIN] 60s: 1633 correlated rows...
+[16:25:31] [DRAIN] Quiescent at 84s with 1633 correlated rows.
+[16:25:33] [GT] Ingested 5268 rows.
+[16:25:45] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8612 correlated=1633 with_attack_id=1633 kernel_true=8612 app_emit=1633
+  matched_on: no_match=6975  dest_endpoint=560  trace_id=537  file_path=536  no_label=4
+  actions:    none_uncorrelated=6979  revoke_session=1633
+  revocations=(1633, 1633)  blocked_requests=0  delivery={'issued': 5268, 'delivered': 5268, 'blocked': 0, 'undelivered': 0}
+  cep: processed=14962 outcomes=8612 dropped/ignored=1082 app=5268 residual=0 held=0 stable=True
+  telemetry: 14962 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=7168.0ms  RCE pipeline_p50=6.0ms p95=69.0ms  SSRF pipeline_p50=2.0ms p95=11.0ms
+  -------------------------------------------------------
+
+[16:25:45] [CELL] PASS ENRICH_r3_d1__r1   execution recall 537/537
+[16:25:45] [SWEEP] Tetragon enrichment: retries=0 delay=1s
+[16:25:54] [SETUP] TracingPolicies attached after 2s.
+[16:26:04] [CLOCK] Tetragon vs node: +0.5s (tolerance 60s)
+
+==========================================================================
+  ENRICH_r0_d1   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=0x1s adv=False enforce=False tier2=False
+  S20261006-134605__ENRICH_r0_d1__r1__866de0
+==========================================================================
+[16:26:05] [SETTLE] 75s for the previous cell to drain fully...
+[16:27:53] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[16:29:04] [LOCUST] Aggregated                                                                              3      4      5      5      7     24     54     67     84     
+[16:29:04] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENRICH_r0_d1__r1__866de0_locust.log
+[16:29:04] [RESOURCE] clickhouse=111.4m/2393.2Mi  nats=49.5m/228.7Mi  sarvajna-cep=143.6m/41.1Mi  soar-worker=46.8m/98.9Mi  target-app=372.2m/155.6Mi  tetragon=1013.4m/6492.5Mi  vector=94.9m/512.0Mi
+[16:29:04] [BACKLOG] correlator queue peaked at 5
+[16:29:04] [DRAIN] 0s: 1697 correlated rows...
+[16:29:19] [DRAIN] 15s: 1697 correlated rows...
+[16:29:34] [DRAIN] 30s: 1697 correlated rows...
+[16:29:49] [DRAIN] 45s: 1697 correlated rows...
+[16:30:04] [DRAIN] 60s: 1697 correlated rows...
+[16:30:29] [DRAIN] Quiescent at 84s with 1697 correlated rows.
+[16:30:30] [GT] Ingested 5269 rows.
+[16:30:43] [CLOCK] Tetragon vs node: +0.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8661 correlated=1697 with_attack_id=1697 kernel_true=8661 app_emit=1697
+  matched_on: no_match=6960  trace_id=594  file_path=583  dest_endpoint=520  no_label=4
+  actions:    none_uncorrelated=6964  revoke_session=1697
+  revocations=(1697, 1697)  blocked_requests=0  delivery={'issued': 5269, 'delivered': 5269, 'blocked': 0, 'undelivered': 0}
+  cep: processed=15126 outcomes=8661 dropped/ignored=1196 app=5269 residual=0 held=0 stable=True
+  telemetry: 15126 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=5812.0ms  RCE pipeline_p50=6.0ms p95=11.0ms  SSRF pipeline_p50=2.0ms p95=11.0ms
+  -------------------------------------------------------
+
+[16:30:43] [CELL] PASS ENRICH_r0_d1__r1   execution recall 594/594
+[16:30:43] [SWEEP] Tetragon enrichment: retries=8 delay=1s
+[16:30:51] [SETUP] TracingPolicies attached after 2s.
+[16:31:02] [CLOCK] Tetragon vs node: +1.5s (tolerance 60s)
+
+==========================================================================
+  ENRICH_r8_d1   rep 1   mode=deterministic window=10000ms horizon=10000ms enrich=8x1s adv=False enforce=False tier2=False
+  S20261006-134605__ENRICH_r8_d1__r1__3c468d
+==========================================================================
+[16:31:04] [SETTLE] 75s for the previous cell to drain fully...
+[16:32:53] [CEP] [CEP] outgoing correlator gone after 25s; exactly one running
+[16:34:04] [LOCUST] Aggregated                                                                              3      4      5      5      7     23     55     68     97    1
+[16:34:04] [LOCUST] wall=30.2s -> benchmarks/logs/S20261006-134605__ENRICH_r8_d1__r1__3c468d_locust.log
+[16:34:04] [RESOURCE] clickhouse=118.9m/2393.2Mi  nats=48.1m/228.7Mi  sarvajna-cep=146.0m/41.1Mi  soar-worker=46.0m/98.8Mi  target-app=382.0m/155.6Mi  tetragon=1027.2m/6492.5Mi  vector=94.0m/512.0Mi
+[16:34:04] [BACKLOG] correlator queue peaked at 1
+[16:34:04] [DRAIN] 0s: 1544 correlated rows...
+[16:34:19] [DRAIN] 15s: 1662 correlated rows...
+[16:34:34] [DRAIN] 30s: 1662 correlated rows...
+[16:34:49] [DRAIN] 45s: 1662 correlated rows...
+[16:35:04] [DRAIN] 60s: 1662 correlated rows...
+[16:35:28] [DRAIN] Quiescent at 84s with 1662 correlated rows.
+[16:35:30] [GT] Ingested 5218 rows.
+[16:35:42] [CLOCK] Tetragon vs node: +0.7s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=8536 correlated=1662 with_attack_id=1662 kernel_true=8536 app_emit=1662
+  matched_on: no_match=6870  file_path=578  trace_id=549  dest_endpoint=535  no_label=4
+  actions:    none_uncorrelated=6874  revoke_session=1662
+  revocations=(1662, 1662)  blocked_requests=0  delivery={'issued': 5218, 'delivered': 5218, 'blocked': 0, 'undelivered': 0}
+  cep: processed=14860 outcomes=8536 dropped/ignored=1106 app=5218 residual=0 held=0 stable=True
+  telemetry: 14860 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=3.0ms p95=4155.0ms  RCE pipeline_p50=8.0ms p95=128.0ms  SSRF pipeline_p50=2.0ms p95=10.0ms
+  -------------------------------------------------------
+
+[16:35:42] [CELL] PASS ENRICH_r8_d1__r1   execution recall 549/549
+[16:35:42] [SWEEP] Tetragon enrichment: retries=0 delay=1s
+[16:35:50] [SETUP] TracingPolicies attached after 2s.
+[16:36:02] [CLOCK] Tetragon vs node: +1.5s (tolerance 60s)
+
+==========================================================================
+  QUARANTINE_Enforced   rep 1   (pod quarantine enabled)
+  S20261006-134605__QUARANTINE_Enforced__r1__d53d6f
+==========================================================================
+[16:36:02] [SETTLE] 75s...
+[16:37:50] [CEP] [CEP] outgoing correlator gone after 27s; exactly one running
+[16:38:45] [LOCUST] Aggregated                                                                              3      4      4      5      5      6     18     41     77     
+[16:38:45] [LOCUST] wall=10.2s -> benchmarks/logs/S20261006-134605__QUARANTINE_Enforced__r1__d53d6f_locust.log
+[16:38:45] [RESOURCE] clickhouse=172.5m/2393.2Mi  nats=29.5m/228.7Mi  sarvajna-cep=65.6m/33.2Mi  soar-worker=25.1m/97.8Mi  target-app=219.7m/155.6Mi  tetragon=751.9m/6492.5Mi  vector=72.3m/512.0Mi
+[16:38:45] [BACKLOG] correlator queue peaked at 7
+[16:39:05] [QUARANTINE] containment converged 30.9s after the action
+[16:39:05] [DRAIN] 0s: 239 correlated rows...
+[16:39:20] [DRAIN] 15s: 239 correlated rows...
+[16:39:36] [DRAIN] 30s: 239 correlated rows...
+[16:39:51] [DRAIN] 45s: 239 correlated rows...
+[16:40:06] [DRAIN] 60s: 239 correlated rows...
+[16:40:30] [DRAIN] Quiescent at 84s with 239 correlated rows.
+[16:40:30] [GT] Ingested 720 rows.
+[16:41:08] [CLOCK] Tetragon vs node: +0.6s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=2625 correlated=239 with_attack_id=239 kernel_true=2625 app_emit=239
+  matched_on: no_match=1294  no_label=1092  trace_id=84  dest_endpoint=78  file_path=77
+  actions:    revoke_session+pod_quarantine=9  none_uncorrelated=2386  revoke_session=230
+  revocations=(239, 239)  blocked_requests=0  delivery={'issued': 720, 'delivered': 720, 'blocked': 0, 'undelivered': 0}
+  cep: processed=3645 outcomes=2739 dropped/ignored=177 app=720 residual=9 held=9 stable=False
+  telemetry: 3414 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=2.0ms p95=11.0ms  RCE pipeline_p50=8.0ms p95=17.0ms  SSRF pipeline_p50=2.0ms p95=19.0ms
+  -------------------------------------------------------
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CELL FAILED: QUARANTINE_Enforced__r1
+!  run_id: S20261006-134605__QUARANTINE_Enforced__r1__d53d6f
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  - reason codes do not partition the events (residual=9); processed=3645 outcomes=2739 dropped=177 app=720
+!  - events still held at cell end (held=9); their outcomes are missing
+!  - correlator counters never settled; the reconciliation is approximate
+!
+!  19 cell(s) collected and verified before this one. Their data is kept.
+!  Diagnostics: benchmarks/diag/S20261006-134605__QUARANTINE_Enforced__r1__d53d6f.json
+!
+!  Fix the cause, then continue from this cell:
+!      python benchmarks/run_benchmark.py --resume S20261006-134605
+!
+!  The failed cell's rows are deleted and verified gone before it is
+!  collected again, so nothing is counted twice.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[17:46:23] [RESUME] continuing suite S20261006-134605
+[17:46:23] [PREFLIGHT] ==========================================================
+
+[1m[0] Local tooling[0m
+  [32mok  [0m kubectl on PATH                                /usr/bin/kubectl
+  [32mok  [0m docker on PATH                                 /usr/bin/docker
+  [32mok  [0m helm on PATH                                   /usr/local/bin/helm
+  [32mok  [0m jq on PATH                                     /usr/bin/jq
+  [32mok  [0m locust on PATH                                 /home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust
+  [32mok  [0m python module clickhouse_driver                importable
+  [32mok  [0m python module nats                             importable
+  [32mok  [0m python module pandas                           importable
+  [32mok  [0m python module numpy                            importable
+  [32mok  [0m python module matplotlib                       importable
+
+[1m[1] Cluster and workloads[0m
+  [32mok  [0m node container running                         k3d-sarvajna-cluster-server-0
+  [32mok  [0m apiserver readyz                               ok
+  [32mok  [0m sarvajna-infra/clickhouse                      1/1 Running restarts=0 age=11h
+  [32mok  [0m sarvajna-infra/nats                            1/1 Running restarts=0 age=11h
+  [32mok  [0m sarvajna-infra/postgres                        1/1 Running restarts=0 age=11h
+  [32mok  [0m sarvajna-infra/sarvajna-cep                    1/1 Running restarts=0 age=69m
+  [32mok  [0m sarvajna-infra/soar-worker                     1/1 Running restarts=0 age=68m
+  [32mok  [0m sarvajna-infra/vector                          1/1 Running restarts=0 age=7h12m
+  [32mok  [0m default/target-app                             1/1 Running restarts=0 age=112m
+  [32mok  [0m kube-system/tetragon                           1/1 Running restarts=0 age=11h
+  [33mwarn[0m kube-system/cilium-q                           1/1 Running restarts=10 age=28d
+       [33mremedy:[0m kubectl logs -n kube-system cilium-qppln --previous
+  [32mok  [0m exactly one correlator                         1 pod(s)
+
+[1m[2] Network paths[0m
+  [32mok  [0m localhost:9000 (clickhouse)                    reachable
+  [32mok  [0m localhost:4222 (nats)                          reachable
+  [32mok  [0m localhost:3501 (target-app)                    reachable
+  [32mok  [0m endpoint resolution                            clickhouse_pod=10.42.0.134 nats_pod=10.42.0.230 postgres_pod=10.42.0.115 postgres_svc=10.43.170.130 clickhouse_svc=10.43.145.181 target_app_pod=10.42.0.164
+
+[1m[3] ClickHouse schema and capacity[0m
+  [32mok  [0m clickhouse responding                          1
+  [32mok  [0m table detections                               32 columns
+  [32mok  [0m table ground_truth                             12 columns
+  [32mok  [0m table revocations                              10 columns
+  [32mok  [0m table raw_telemetry                            12 columns
+  [32mok  [0m detections.t_kernel precision                  DateTime64(6)
+  [32mok  [0m detections.t_correlate precision               DateTime64(6)
+  [32mok  [0m detections.t_action precision                  DateTime64(6)
+  [32mok  [0m detections.window_ms range                     UInt32
+       existing row counts                            raw_telemetry=306115  ground_truth=97128  revocations=28705  detections=151323
+  [32mok  [0m node disk headroom                             100G free
+
+[1m[4] Revocation store[0m
+  [32mok  [0m revocations table                              revocations
+  [32mok  [0m revocations currently in force                 0 row(s)
+
+[1m[5] NATS JetStream[0m
+  [32mok  [0m stream TELEMETRY                               0 msgs, 1 consumer(s)
+  [32mok  [0m stream ALERTS                                  0 msgs, 1 consumer(s)
+
+[1m[6] Kernel telemetry[0m
+  [32mok  [0m tetragon enable-process-environment-variables  set
+  [32mok  [0m tetragon filter-environment-variables          set
+  [32mok  [0m tetragon enable-cri                            set
+  [32mok  [0m tetragon cri-endpoint                          set
+  [32mok  [0m tetragon enable-cgidmap                        set
+       enrichment retry ceiling                       retries=0 delay=1s -> up to 0s added exec-path latency
+  [32mok  [0m policy sarvajna-file-open                      attached
+  [32mok  [0m policy sarvajna-tcp-connect                    attached
+  [32mok  [0m tetragon clock vs node                         +0.4s (tolerance 60s)
+
+[1m[7] Enforcement capability[0m
+  [32mok  [0m quarantine policy present                      isolate-compromised-pod   28d   True
+  [32mok  [0m cilium agent                                   cilium-qppln
+  [32mok  [0m policy enforcement mode                        default
+  [32mok  [0m target endpoint enforcement                    3288 Disabled Disabled 15777 k8s:app=target-app 10.42.0.164 ready
+
+[1m[8] Application and context bridge[0m
+  [32mok  [0m health endpoint                                target-app-697f595d7f-f9glj
+  [32mok  [0m revocation enforcement enabled                 enforce=True revoked=0 refreshes=13195
+  [32mok  [0m revocation store reachable                     last refresh 314ms ago
+  [32mok  [0m outbound allowlist                             10.42.0.230:4222
+  [32mok  [0m restricted objects present                     513 of 512
+  [33mwarn[0m bridge canary                                  not in current log window
+       [33mremedy:[0m it fires only at startup; kubectl rollout restart -n default deployment/target-app to re-check
+
+[1m[9] Pipeline configuration[0m
+  [32mok  [0m vector: tetragon_direct                        present
+  [32mok  [0m vector: app_logs                               present
+  [32mok  [0m vector: glob_minimum_cooldown_ms               present
+  [32mok  [0m vector: read_from: end                         present
+  [32mok  [0m vector: kernel_time                            present
+  [32mok  [0m vector: collector_time                         present
+  [32mok  [0m vector: .pod_name == "unknown"                 present
+  [32mok  [0m collector checkpoints survive restart          hostPath
+       application log rotation state                 2 file(s) in the log directory
+  [32mok  [0m no host telemetry collected                    0 unresolved kernel events in the last 30 min
+  [32mok  [0m sarvajna-cep JOIN_MODE                         JOIN_MODE=deterministic
+  [32mok  [0m sarvajna-cep CORRELATION_WINDOW_MS             CORRELATION_WINDOW_MS=10000
+  [32mok  [0m sarvajna-cep PENDING_EXECVE_HORIZON_MS         PENDING_EXECVE_HORIZON_MS=10000
+  [32mok  [0m sarvajna-cep IGNORE_DADDRS                     IGNORE_DADDRS=10.42.0.115,10.43.170.130
+  [32mok  [0m soar-worker ENRICH_RETRIES                     ENRICH_RETRIES=0
+  [32mok  [0m soar-worker ENFORCE_REVOCATION                 ENFORCE_REVOCATION=false
+  [32mok  [0m soar-worker TIER2_ENABLED                      TIER2_ENABLED=true
+  [32mok  [0m soar-worker ACT_ON_UNCORRELATED                ACT_ON_UNCORRELATED=false
+  [32mok  [0m target not quarantined                         clean
+  [32mok  [0m stream retention bounded                       TELEMETRY: {'msgs': 6, 'max_age_s': 600.0}  ALERTS: {'msgs': 5, 'max_age_s': 600.0}
+[17:46:33] [ENV] manifest written: node kernel 6.15.0-1-cachyos, 9 component images
+[17:46:33] [APP] Configuring application (once for the whole suite)...
+[17:46:36] [CANARY] PASS expected=canary-1791288996277 observed=canary-1791288996277
+[17:46:36] [APP] Creating 512 objects...
+[17:46:36] [APP] Ready. objects=513 allowlist=['10.42.0.230:4222']
+[17:46:37] [SETUP] Restarting Tetragon to reset its clock baseline...
+[17:46:45] [SETUP] TracingPolicies attached after 2s.
+[17:46:56] [CLOCK] Tetragon vs node: +0.7s (tolerance 60s)
+[17:46:57] [SETUP] TracingPolicies attached after 0s.
+[17:47:08] [CLOCK] Tetragon vs node: +0.7s (tolerance 60s)
+[17:47:08] [SETUP] Warming port-forward after application restart...
+[17:47:10] [SETUP] Port-forward re-established and healthy on localhost:3501.
+
+[1m[7] Quarantine enforcement (destructive, self-restoring)[0m
+  [31mFAIL[0m quarantine converges                           not enforced within 60s
+       [33mremedy:[0m the response tier writes a label that enforces nothing
+
+[1m[11] Revocation takes effect[0m
+[17:48:57] [REVOCATION] [CEP] outgoing correlator gone after 27s; exactly one running
+[17:49:54] [RESUME] continuing suite S20261006-134605
+[17:49:54] [PREFLIGHT] ==========================================================
+
+[1m[0] Local tooling[0m
+  [32mok  [0m kubectl on PATH                                /usr/bin/kubectl
+  [32mok  [0m docker on PATH                                 /usr/bin/docker
+  [32mok  [0m helm on PATH                                   /usr/local/bin/helm
+  [32mok  [0m jq on PATH                                     /usr/bin/jq
+  [32mok  [0m locust on PATH                                 /home/hakaishin/Project_CYM500_Sarvajna_Amogh/venv/bin/locust
+  [32mok  [0m python module clickhouse_driver                importable
+  [32mok  [0m python module nats                             importable
+  [32mok  [0m python module pandas                           importable
+  [32mok  [0m python module numpy                            importable
+  [32mok  [0m python module matplotlib                       importable
+
+[1m[1] Cluster and workloads[0m
+  [32mok  [0m node container running                         k3d-sarvajna-cluster-server-0
+  [32mok  [0m apiserver readyz                               ok
+  [32mok  [0m sarvajna-infra/clickhouse                      1/1 Running restarts=0 age=11h
+  [32mok  [0m sarvajna-infra/nats                            1/1 Running restarts=0 age=11h
+  [32mok  [0m sarvajna-infra/postgres                        1/1 Running restarts=0 age=11h
+  [32mok  [0m sarvajna-infra/sarvajna-cep                    1/1 Running restarts=0 age=89s
+  [32mok  [0m sarvajna-infra/soar-worker                     1/1 Running restarts=0 age=25s
+  [32mok  [0m sarvajna-infra/vector                          1/1 Running restarts=0 age=7h16m
+  [32mok  [0m default/target-app                             1/1 Running restarts=0 age=3m20s
+  [32mok  [0m kube-system/tetragon                           1/1 Running restarts=0 age=11h
+  [33mwarn[0m kube-system/cilium-q                           1/1 Running restarts=10 age=28d
+       [33mremedy:[0m kubectl logs -n kube-system cilium-qppln --previous
+  [32mok  [0m exactly one correlator                         1 pod(s)
+
+[1m[2] Network paths[0m
+  [32mok  [0m localhost:9000 (clickhouse)                    reachable
+  [32mok  [0m localhost:4222 (nats)                          reachable
+  [32mok  [0m localhost:3501 (target-app)                    reachable
+  [32mok  [0m endpoint resolution                            clickhouse_pod=10.42.0.134 nats_pod=10.42.0.230 postgres_pod=10.42.0.115 postgres_svc=10.43.170.130 clickhouse_svc=10.43.145.181 target_app_pod=10.42.0.11
+
+[1m[3] ClickHouse schema and capacity[0m
+  [32mok  [0m clickhouse responding                          1
+  [32mok  [0m table detections                               32 columns
+  [32mok  [0m table ground_truth                             12 columns
+  [32mok  [0m table revocations                              10 columns
+  [32mok  [0m table raw_telemetry                            12 columns
+  [32mok  [0m detections.t_kernel precision                  DateTime64(6)
+  [32mok  [0m detections.t_correlate precision               DateTime64(6)
+  [32mok  [0m detections.t_action precision                  DateTime64(6)
+  [32mok  [0m detections.window_ms range                     UInt32
+       existing row counts                            raw_telemetry=307176  ground_truth=97128  revocations=28705  detections=152372
+  [32mok  [0m node disk headroom                             100G free
+
+[1m[4] Revocation store[0m
+  [32mok  [0m revocations table                              revocations
+  [32mok  [0m revocations currently in force                 0 row(s)
+
+[1m[5] NATS JetStream[0m
+  [32mok  [0m stream TELEMETRY                               1061 msgs, 1 consumer(s)
+  [32mok  [0m stream ALERTS                                  1049 msgs, 1 consumer(s)
+
+[1m[6] Kernel telemetry[0m
+  [32mok  [0m tetragon enable-process-environment-variables  set
+  [32mok  [0m tetragon filter-environment-variables          set
+  [32mok  [0m tetragon enable-cri                            set
+  [32mok  [0m tetragon cri-endpoint                          set
+  [32mok  [0m tetragon enable-cgidmap                        set
+       enrichment retry ceiling                       retries=0 delay=1s -> up to 0s added exec-path latency
+  [32mok  [0m policy sarvajna-file-open                      attached
+  [32mok  [0m policy sarvajna-tcp-connect                    attached
+  [32mok  [0m tetragon clock vs node                         +0.5s (tolerance 60s)
+
+[1m[7] Enforcement capability[0m
+  [32mok  [0m quarantine policy present                      isolate-compromised-pod   28d   True
+  [32mok  [0m cilium agent                                   cilium-qppln
+  [32mok  [0m policy enforcement mode                        default
+  [32mok  [0m target endpoint enforcement                    1401 Disabled Disabled 2751 k8s:app=postgres 10.42.0.115 ready
+
+[1m[8] Application and context bridge[0m
+  [32mok  [0m health endpoint                                target-app-c69c5cbfb-hpwzz
+  [32mok  [0m revocation enforcement enabled                 enforce=True revoked=0 refreshes=298
+  [32mok  [0m revocation store reachable                     last refresh 143ms ago
+  [32mok  [0m outbound allowlist                             10.42.0.230:4222
+  [32mok  [0m restricted objects present                     513 of 512
+  [32mok  [0m bridge canary                                  expected=canary-1791288996277 observed=canary-1791288996277
+
+[1m[9] Pipeline configuration[0m
+  [32mok  [0m vector: tetragon_direct                        present
+  [32mok  [0m vector: app_logs                               present
+  [32mok  [0m vector: glob_minimum_cooldown_ms               present
+  [32mok  [0m vector: read_from: end                         present
+  [32mok  [0m vector: kernel_time                            present
+  [32mok  [0m vector: collector_time                         present
+  [32mok  [0m vector: .pod_name == "unknown"                 present
+  [32mok  [0m collector checkpoints survive restart          hostPath
+       application log rotation state                 1 file(s) in the log directory
+  [32mok  [0m no host telemetry collected                    0 unresolved kernel events in the last 30 min
+  [32mok  [0m sarvajna-cep JOIN_MODE                         JOIN_MODE=deterministic
+  [32mok  [0m sarvajna-cep CORRELATION_WINDOW_MS             CORRELATION_WINDOW_MS=10000
+  [32mok  [0m sarvajna-cep PENDING_EXECVE_HORIZON_MS         PENDING_EXECVE_HORIZON_MS=10000
+  [32mok  [0m sarvajna-cep IGNORE_DADDRS                     IGNORE_DADDRS=10.42.0.115,10.43.170.130
+  [32mok  [0m soar-worker ENRICH_RETRIES                     ENRICH_RETRIES=0
+  [32mok  [0m soar-worker ENFORCE_REVOCATION                 ENFORCE_REVOCATION=true
+  [32mok  [0m soar-worker TIER2_ENABLED                      TIER2_ENABLED=false
+  [32mok  [0m soar-worker ACT_ON_UNCORRELATED                ACT_ON_UNCORRELATED=false
+  [32mok  [0m target not quarantined                         clean
+  [32mok  [0m stream retention bounded                       TELEMETRY: {'msgs': 1067, 'max_age_s': 600.0}  ALERTS: {'msgs': 1054, 'max_age_s': 600.0}
+[17:50:05] [ENV] manifest written: node kernel 6.15.0-1-cachyos, 9 component images
+[17:50:05] [APP] Configuring application (once for the whole suite)...
+[17:50:10] [CANARY] PASS expected=canary-1791289207994 observed=canary-1791289207994
+[17:50:10] [APP] Creating 512 objects...
+[17:50:10] [APP] Ready. objects=513 allowlist=['10.42.0.230:4222']
+[17:50:10] [SETUP] Restarting Tetragon to reset its clock baseline...
+[17:50:17] [SETUP] TracingPolicies attached after 2s.
+[17:50:28] [CLOCK] Tetragon vs node: +0.9s (tolerance 60s)
+[17:50:30] [SETUP] TracingPolicies attached after 0s.
+[17:50:41] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+[17:50:41] [SETUP] Warming port-forward after application restart...
+[17:50:43] [SETUP] Port-forward re-established and healthy on localhost:3501.
+
+[1m[7] Quarantine enforcement (destructive, self-restoring)[0m
+       containment latency (apply)                    28.2s
+  [32mok  [0m pod-network traffic severed                    ingress=BLOCKED egress=BLOCKED still_enforced=True
+       port-forward survives containment              OK
+  [32mok  [0m recovery after reset                           ingress=OK egress=OK  [BENCHMARK] Quarantine lifted on 1 pod(s); datapath converged after 26s.
+
+[1m[11] Revocation takes effect[0m
+[17:52:27] [REVOCATION] [CEP] outgoing correlator gone after 20s; exactly one running
+  [32mok  [0m principal serves before revocation             HTTP 200
+  [32mok  [0m principal refused after revocation             HTTP 403 after 1.04s
+       revocation effect latency                      1.04s
+
+[1m======================================================================[0m
+  [32mPASS 80[0m   [33mWARN 1[0m   [31mFAIL 0[0m
+
+  [33mNON-BLOCKING:[0m
+    - [1] kube-system/cilium-q: 1/1 Running restarts=10 age=28d
+
+  [1mVERDICT: READY (with warnings)[0m
+[1m======================================================================[0m
+  report: benchmarks/diag/preflight.json
+
+[17:53:20] [PREFLIGHT] ==========================================================
+[17:53:20] [RESUME] no orphaned rows from interrupted attempts
+
+##########################################################################
+#  SUITE S20261006-134605   20 cells
+##########################################################################
+[17:53:20] [SKIP] WARMUP__r0 already passed (S20261006-134605__WARMUP__r0__003603)
+[17:53:20] [SKIP] B3_DeterministicBridge__r1 already passed (S20261006-134605__B3_DeterministicBridge__r1__3a5bff)
+[17:53:20] [SKIP] B4_AdversarialRobustness__r1 already passed (S20261006-134605__B4_AdversarialRobustness__r1__8d5891)
+[17:53:20] [SKIP] B1_TemporalOnly__r1 already passed (S20261006-134605__B1_TemporalOnly__r1__1ad382)
+[17:53:20] [SKIP] B2_SpatialResource__r1 already passed (S20261006-134605__B2_SpatialResource__r1__7ab43f)
+[17:53:20] [SKIP] WINDOW_20000ms__r1 already passed (S20261006-134605__WINDOW_20000ms__r1__6718fe)
+[17:53:20] [SKIP] WINDOW_10000ms__r1 already passed (S20261006-134605__WINDOW_10000ms__r1__a72fa9)
+[17:53:20] [SKIP] WINDOW_2000ms_DECOUPLED__r1 already passed (S20261006-134605__WINDOW_2000ms_DECOUPLED__r1__7e662f)
+[17:53:20] [SKIP] WINDOW_30000ms__r1 already passed (S20261006-134605__WINDOW_30000ms__r1__fedc37)
+[17:53:20] [SKIP] WINDOW_5000ms__r1 already passed (S20261006-134605__WINDOW_5000ms__r1__514f27)
+[17:53:20] [SKIP] WINDOW_2000ms__r1 already passed (S20261006-134605__WINDOW_2000ms__r1__3e9ba3)
+[17:53:20] [SKIP] ENFORCE_Forgery__r1 already passed (S20261006-134605__ENFORCE_Forgery__r1__8edcc1)
+[17:53:20] [SKIP] ENFORCE_TemporalBaseline__r1 already passed (S20261006-134605__ENFORCE_TemporalBaseline__r1__17abd0)
+[17:53:20] [SKIP] ENFORCE_Baseline__r1 already passed (S20261006-134605__ENFORCE_Baseline__r1__3672d4)
+[17:53:20] [SKIP] ENRICH_r15_d1__r1 already passed (S20261006-134605__ENRICH_r15_d1__r1__4e3d57)
+[17:53:20] [SKIP] ENRICH_r15_d2__r1 already passed (S20261006-134605__ENRICH_r15_d2__r1__0c64e5)
+[17:53:20] [SKIP] ENRICH_r3_d1__r1 already passed (S20261006-134605__ENRICH_r3_d1__r1__2b219e)
+[17:53:20] [SKIP] ENRICH_r0_d1__r1 already passed (S20261006-134605__ENRICH_r0_d1__r1__866de0)
+[17:53:20] [SKIP] ENRICH_r8_d1__r1 already passed (S20261006-134605__ENRICH_r8_d1__r1__3c468d)
+[17:53:20] [PURGE] removing rows from the previous attempt: S20261006-134605__QUARANTINE_Enforced__r1__d53d6f
+[17:53:21] [PURGE] removed; {'detections': 0, 'ground_truth': 0, 'revocations': 0}
+
+==========================================================================
+  QUARANTINE_Enforced   rep 1   (pod quarantine enabled)
+  S20261006-134605__QUARANTINE_Enforced__r1__bcf9ba
+==========================================================================
+[17:53:22] [SETTLE] 75s...
+[17:55:11] [CEP] [CEP] outgoing correlator gone after 26s; exactly one running
+[17:56:06] [LOCUST] Aggregated                                                                              4      4      5      5      6      7     10     16     36     
+[17:56:06] [LOCUST] wall=10.2s -> benchmarks/logs/S20261006-134605__QUARANTINE_Enforced__r1__bcf9ba_locust.log
+[17:56:06] [RESOURCE] clickhouse=92.3m/2393.2Mi  nats=29.7m/228.7Mi  sarvajna-cep=67.1m/35.3Mi  soar-worker=24.6m/98.0Mi  target-app=251.4m/102.4Mi  tetragon=727.2m/6492.5Mi  vector=71.7m/512.0Mi
+[17:56:06] [BACKLOG] correlator queue peaked at 3
+[17:56:26] [QUARANTINE] containment converged 30.9s after the action
+[17:56:58] [DRAIN] 0s: 225 correlated rows...
+[17:57:13] [DRAIN] 15s: 225 correlated rows...
+[17:57:28] [DRAIN] 30s: 225 correlated rows...
+[17:57:43] [DRAIN] 45s: 225 correlated rows...
+[17:57:58] [DRAIN] 60s: 225 correlated rows...
+[17:58:22] [DRAIN] Quiescent at 84s with 225 correlated rows.
+[17:58:22] [GT] Ingested 717 rows.
+[17:58:35] [CLOCK] Tetragon vs node: +0.8s (tolerance 60s)
+
+  ---- DIAGNOSTIC SNAPSHOT (raw counts, NOT results) ----
+  detections: total=3584 correlated=225 with_attack_id=225 kernel_true=3584 app_emit=225
+  matched_on: no_label=1809  no_match=1550  dest_endpoint=78  trace_id=74  file_path=73
+  actions:    revoke_session+pod_quarantine=9  none_uncorrelated=3359  revoke_session=216
+  revocations=(225, 225)  blocked_requests=0  delivery={'issued': 717, 'delivered': 717, 'blocked': 0, 'undelivered': 0}
+  cep: processed=4459 outcomes=3584 dropped/ignored=158 app=717 residual=0 held=0 stable=True
+  telemetry: 4341 collected in window, 0 (0.0%) predate it
+  latency:    BOLA pipeline_p50=2.0ms p95=156.0ms  RCE pipeline_p50=7.0ms p95=11.0ms  SSRF pipeline_p50=2.0ms p95=11.0ms
+  -------------------------------------------------------
+
+[17:58:35] [CELL] PASS QUARANTINE_Enforced__r1   execution recall 74/74; containment 30.914s
+
+==========================================================================
+  SUITE S20261006-134605   created 2026-10-06T08:19:19.012870+00:00
+==========================================================================
+  [PASSED ] WARMUP__r0  S20261006-134605__WARMUP__r0__003603
+  [PASSED ] B3_DeterministicBridge__r1  S20261006-134605__B3_DeterministicBridge__r1__3a5bff
+  [PASSED ] B4_AdversarialRobustness__r1  S20261006-134605__B4_AdversarialRobustness__r1__8d5891
+  [PASSED ] B1_TemporalOnly__r1  S20261006-134605__B1_TemporalOnly__r1__1ad382
+  [PASSED ] B2_SpatialResource__r1  S20261006-134605__B2_SpatialResource__r1__7ab43f
+  [PASSED ] WINDOW_20000ms__r1  S20261006-134605__WINDOW_20000ms__r1__6718fe
+  [PASSED ] WINDOW_10000ms__r1  S20261006-134605__WINDOW_10000ms__r1__a72fa9
+  [PASSED ] WINDOW_2000ms_DECOUPLED__r1  S20261006-134605__WINDOW_2000ms_DECOUPLED__r1__7e662f
+  [PASSED ] WINDOW_30000ms__r1  S20261006-134605__WINDOW_30000ms__r1__fedc37
+  [PASSED ] WINDOW_5000ms__r1  S20261006-134605__WINDOW_5000ms__r1__514f27
+  [PASSED ] WINDOW_2000ms__r1  S20261006-134605__WINDOW_2000ms__r1__3e9ba3
+  [PASSED ] ENFORCE_Forgery__r1  S20261006-134605__ENFORCE_Forgery__r1__8edcc1
+  [PASSED ] ENFORCE_TemporalBaseline__r1  S20261006-134605__ENFORCE_TemporalBaseline__r1__17abd0
+  [PASSED ] ENFORCE_Baseline__r1  S20261006-134605__ENFORCE_Baseline__r1__3672d4
+  [PASSED ] ENRICH_r15_d1__r1  S20261006-134605__ENRICH_r15_d1__r1__4e3d57
+  [PASSED ] ENRICH_r15_d2__r1  S20261006-134605__ENRICH_r15_d2__r1__0c64e5
+  [PASSED ] ENRICH_r3_d1__r1  S20261006-134605__ENRICH_r3_d1__r1__2b219e
+  [PASSED ] ENRICH_r0_d1__r1  S20261006-134605__ENRICH_r0_d1__r1__866de0
+  [PASSED ] ENRICH_r8_d1__r1  S20261006-134605__ENRICH_r8_d1__r1__3c468d
+  [PASSED ] QUARANTINE_Enforced__r1  S20261006-134605__QUARANTINE_Enforced__r1__bcf9ba
+
+  20 passed, 0 failed, 0 not started
+==========================================================================
+
+==========================================================================
+  COLLECTION COMPLETE.  Suite = S20261006-134605
+  Ledger:      benchmarks/diag/S20261006-134605_ledger.json
+  Diagnostics: benchmarks/diag/   Workload logs: benchmarks/logs/
+  Wait ~2 minutes, then:
+      python benchmarks/analyze.py --suite S20261006-134605
+      ./benchmarks/export_suite.sh S20261006-134605
+==========================================================================

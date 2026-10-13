@@ -1,0 +1,21 @@
+{
+  "app_pod": "target-app-867fcb7fd4-q8898",
+  "app_ip": "10.42.0.4",
+  "before": {
+    "pod_ingress": "OK",
+    "pf_ingress": "OK",
+    "egress": "OK"
+  },
+  "under_enforcement": {
+    "pod_ingress": "BLOCKED",
+    "pf_ingress": "OK",
+    "egress": "BLOCKED",
+    "still_enforced": true
+  },
+  "after_reset": {
+    "pod_ingress": "OK",
+    "egress": "OK"
+  },
+  "containment_latency_s": 28.195,
+  "measured_at": "2026-10-06T12:21:55.251338+00:00"
+}
