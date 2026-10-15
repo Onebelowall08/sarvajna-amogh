@@ -512,7 +512,62 @@ def check_invariants(cells, metrics):
     return ok
 
 
+def ensure_clickhouse_data(suite):
+    """Ensures ClickHouse is running and populated with the suite archive.
+
+    If data already exists, returns immediately with zero delay.
+    """
+    import socket
+    import subprocess
+    import time
+
+    def port_open():
+        try:
+            with socket.create_connection(("127.0.0.1", 9000), timeout=0.5):
+                return True
+        except OSError:
+            return False
+
+    # 1. Check if ClickHouse port is listening and already has data
+    if port_open():
+        try:
+            c = Client(**CH, connect_timeout=1)
+            cnt = c.execute(
+                "SELECT count() FROM sarvajna.detections WHERE run_id LIKE %(s)s",
+                {"s": f"{suite}__%"},
+            )[0][0]
+            if cnt > 0:
+                return  # Data is already present! Proceed immediately.
+        except Exception:
+            pass
+
+    print(f"[SETUP] Ensuring ClickHouse is available and restoring data for {suite}...")
+
+    # 2. If ClickHouse port is closed, spin it up via Docker
+    if not port_open():
+        print("[SETUP] Launching background ClickHouse container...")
+        subprocess.run(
+            "docker run -d --name sarvajna-clickhouse-reproduce -p 9000:9000 -p"
+            " 8123:8123 -e CLICKHOUSE_PASSWORD=amogh_secure_pwd -e"
+            " CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1"
+            " clickhouse/clickhouse-server:26.8.2.7",
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        for _ in range(30):
+            time.sleep(1)
+            if port_open():
+                break
+
+    # 3. Load the archived suite CSVs into ClickHouse
+    restore_script = "benchmarks/restore_archive.sh"
+    if os.path.exists(restore_script):
+        subprocess.run(f"bash {restore_script} {suite}", shell=True, check=True)
+
+
 def analyse(suite):
+    ensure_clickhouse_data(suite)
     os.makedirs(OUT, exist_ok=True)
     ch = Client(**CH)
     print(f"\n{'=' * 74}\n  ANALYSIS  suite {suite}\n{'=' * 74}")
